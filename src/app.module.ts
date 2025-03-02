@@ -5,6 +5,7 @@ import { CategoryModule } from './modules/category/category.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import configuration from './config/configuration';
 import { ConfigModule } from '@nestjs/config';
+import { UploadService } from './services/upload/upload.service';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { ConfigModule } from '@nestjs/config';
     CategoryModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, UploadService],
+  exports: [UploadService],
 })
 export class AppModule {}
