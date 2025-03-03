@@ -21,15 +21,16 @@ export class CategoryService {
     return from(this.categoryModel.find().exec());
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} category`;
+  findOne(id: string) {
+    return from(this.categoryModel.findById(id));
   }
 
-  update(id: number, updateCategoryDto: UpdateCategoryDto) {
+  update(id: string, updateCategoryDto: UpdateCategoryDto) {
+    const updated = this.categoryModel.findByIdAndUpdate(id, updateCategoryDto);
     return `This action updates a #${id} category`;
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} category`;
+  remove(id: string) {
+    return from(this.categoryModel.findByIdAndDelete(id));
   }
 }

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { from, Observable, switchMap } from 'rxjs';
+import { catchError, from, map, Observable, throwError } from 'rxjs';
 import { v2 as cloudinary, UploadApiResponse } from 'cloudinary';
 import { ConfigService } from '@nestjs/config';
 
@@ -13,17 +13,26 @@ export class UploadService {
     });
   }
 
-  uploadFile(file: Express.Multer.File): Observable<string> {
+  uploadFile(file: Express.Multer.File, folder: string[]): Observable<string> {
     return from(
       cloudinary.uploader.upload(
         `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
         {
           public_id: `${Date.now()}-${file.originalname}`,
-          folder: 'testing',
+          folder: folder.join('/'),
         },
       ),
     ).pipe(
-      switchMap((res: UploadApiResponse) => {
+      catchError(() => throwError('Upload failed')),
+      map((res: UploadApiResponse) => {
+        return res.url;
+      }),
+    );
+  }
+
+  removeFile(path: string): Observable<string> {
+    return from(cloudinary.uploader.destroy(path)).pipe(
+      map((res: UploadApiResponse) => {
         return res.url;
       }),
     );

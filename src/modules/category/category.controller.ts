@@ -8,13 +8,14 @@ import {
   Delete,
   UseInterceptors,
   UploadedFile,
+  BadRequestException,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from 'src/services/upload/upload.service';
-import { lastValueFrom } from 'rxjs';
+import { catchError, mergeMap, throwError } from 'rxjs';
 
 @Controller('category')
 export class CategoryController {
@@ -25,13 +26,26 @@ export class CategoryController {
 
   @Post()
   @UseInterceptors(FileInterceptor('image'))
-  async create(
+  create(
     @Body() createCategoryDto: CreateCategoryDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    const imgUrl = await lastValueFrom(this.uploadService.uploadFile(file));
-    console.log('createCategoryDto', { ...createCategoryDto, imgUrl });
-    return this.categoryService.create({ ...createCategoryDto, imgUrl });
+    if (!file) {
+      throw new BadRequestException('Image required');
+    }
+    console.log(createCategoryDto);
+    return this.uploadService.uploadFile(file, ['clothes', 'category']).pipe(
+      mergeMap(imgUrl => {
+        const createData = { ...createCategoryDto, imgUrl };
+        return this.categoryService.create(createData).pipe(
+          catchError(() => {
+            return this.uploadService
+              .removeFile(imgUrl)
+              .pipe(mergeMap(() => throwError('Create category faild')));
+          }),
+        );
+      }),
+    );
   }
 
   @Get()
@@ -41,7 +55,7 @@ export class CategoryController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.categoryService.findOne(+id);
+    return this.categoryService.findOne(id);
   }
 
   @Patch(':id')
@@ -49,11 +63,11 @@ export class CategoryController {
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
   ) {
-    return this.categoryService.update(+id, updateCategoryDto);
+    return this.categoryService.update(id, updateCategoryDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.categoryService.remove(+id);
+    return this.categoryService.remove(id);
   }
 }
