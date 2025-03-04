@@ -3,8 +3,8 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Category } from 'src/schemas/category.schema';
-import { Model } from 'mongoose';
-import { from, Observable } from 'rxjs';
+import { Model, Types } from 'mongoose';
+import { from, map, Observable } from 'rxjs';
 
 @Injectable()
 export class CategoryService {
@@ -22,15 +22,19 @@ export class CategoryService {
   }
 
   findOne(id: string) {
-    return from(this.categoryModel.findById(id));
+    const objectId = new Types.ObjectId(id); // Chuyển đổi ID thành ObjectId
+    return from(this.categoryModel.findById(objectId).exec());
   }
 
   update(id: string, updateCategoryDto: UpdateCategoryDto) {
-    const updated = this.categoryModel.findByIdAndUpdate(id, updateCategoryDto);
-    return `This action updates a #${id} category`;
+    return from(this.categoryModel.findByIdAndUpdate(id, updateCategoryDto));
   }
 
   remove(id: string) {
     return from(this.categoryModel.findByIdAndDelete(id));
+  }
+
+  findByCode(code: string): Observable<Category | null> {
+    return from(this.categoryModel.findOne({ code }).exec());
   }
 }

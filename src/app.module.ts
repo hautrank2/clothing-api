@@ -5,7 +5,7 @@ import { CategoryModule } from './modules/category/category.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import configuration from './config/configuration';
 import { ConfigModule } from '@nestjs/config';
-import { UploadService } from './services/upload/upload.service';
+import { UploadService } from './services/upload.service';
 
 @Module({
   imports: [

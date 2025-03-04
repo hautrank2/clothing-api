@@ -36,6 +36,7 @@ export default tseslint.config(
       '@typescript-eslint/explicit-module-boundary-types': 'off',
       '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/no-unsafe-call': 'off',
+      "@typescript-eslint/no-unsafe-assignment": "off",
       'prettier/prettier': ['error', { endOfLine: 'crlf' }],
     },
   },

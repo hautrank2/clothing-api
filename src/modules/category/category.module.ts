@@ -3,7 +3,7 @@ import { CategoryService } from './category.service';
 import { CategoryController } from './category.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Category, CategorySchema } from 'src/schemas/category.schema';
-import { UploadService } from 'src/services/upload/upload.service';
+import { UploadService } from 'src/services/upload.service';
 
 @Module({
   imports: [
