@@ -33,6 +33,7 @@ export class UploadService {
   removeFile(path: string): Observable<string> {
     return from(cloudinary.uploader.destroy(path)).pipe(
       map((res: UploadApiResponse) => {
+        console.log('remove d', res);
         return res.url;
       }),
     );

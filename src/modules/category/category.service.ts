@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -21,7 +21,7 @@ export class CategoryService {
     return from(this.categoryModel.find().exec());
   }
 
-  findOne(id: string) {
+  findOne(id: string): Observable<Category | null> {
     const objectId = new Types.ObjectId(id); // Chuyển đổi ID thành ObjectId
     return from(this.categoryModel.findById(objectId).exec());
   }
@@ -34,7 +34,19 @@ export class CategoryService {
     return from(this.categoryModel.findByIdAndDelete(id));
   }
 
-  findByCode(code: string): Observable<Category | null> {
-    return from(this.categoryModel.findOne({ code }).exec());
+  findByCode(code: string): Observable<Category[] | []> {
+    return from(this.categoryModel.find({ code }).exec());
+  }
+
+  codeIsExist(code: string): Observable<boolean> {
+    return from(this.categoryModel.find({ code }).exec()).pipe(
+      map(e => e && e.length > 0),
+    );
+  }
+
+  isValidNewCode(code: string, id: string): Observable<boolean> {
+    return from(
+      this.categoryModel.findOne({ code, _id: { $ne: id } }).exec(),
+    ).pipe(map(e => !!e));
   }
 }
