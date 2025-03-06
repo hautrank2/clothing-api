@@ -37,21 +37,25 @@ export class CategoryController {
   @Post()
   @UseInterceptors(FileInterceptor('image'))
   create(
-    @Body() createCategoryDto: CreateCategoryDto,
+    @Body() dto: CreateCategoryDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
     if (!file) {
       throw new BadRequestException('Image required');
     }
 
-    return this.categoryService.codeIsExist(createCategoryDto.code).pipe(
+    return this.categoryService.codeIsExist(dto.code).pipe(
       mergeMap(codeIsExist =>
         codeIsExist
           ? throwError(() => new BadRequestException('Code already exists'))
-          : this.uploadService.uploadFile(file, ['clothes', 'category']),
+          : this.uploadService.uploadFile(
+              file,
+              ['clothes', 'category'],
+              dto.code,
+            ),
       ),
       switchMap(imgUrl => {
-        const createData = { ...createCategoryDto, imgUrl };
+        const createData = { ...dto, imgUrl };
         return this.categoryService.create(createData).pipe(
           catchError(err => {
             return this.uploadService
@@ -82,10 +86,11 @@ export class CategoryController {
     @Body() dto: UpdateCategoryDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
+    console.log('check request', id, dto, file);
     return this.categoryService.findOne(id).pipe(
       switchMap(data => {
         if (!data) {
-          throwError(() => new NotFoundException('Category not found'));
+          return throwError(() => new NotFoundException('Category not found'));
         }
         return this.categoryService.isValidNewCode(dto.code, id).pipe(
           switchMap(existCate => {
@@ -94,9 +99,10 @@ export class CategoryController {
                 () => new BadRequestException(`Code ${dto.code} exists`),
               );
             }
+            console.log('uploadService');
             return file
               ? this.uploadService
-                  .uploadFile(file, ['clothes', 'category'])
+                  .uploadFile(file, ['clothes', 'category'], dto.code)
                   .pipe(
                     tap(
                       () =>
@@ -120,18 +126,6 @@ export class CategoryController {
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    this.uploadService
-      .removeFile(
-        'https://res.cloudinary.com/dhl9sisnc/image/upload/v1741099023/clothes/category/1741098909262-t_shirt.jpeg.jpg',
-      )
-      .pipe(
-        tap(res => {
-          console.log('remove', res);
-        }),
-      )
-      .subscribe(res => {
-        console.log(res);
-      });
     return this.findOne(id).pipe(
       switchMap(category => {
         if (!category) {

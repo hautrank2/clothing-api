@@ -13,19 +13,27 @@ export class UploadService {
     });
   }
 
-  uploadFile(file: Express.Multer.File, folder: string[]): Observable<string> {
+  uploadFile(
+    file: Express.Multer.File,
+    folder: string[],
+    fileName?: string,
+  ): Observable<string> {
+    console.log('upload file', file);
     return from(
       cloudinary.uploader.upload(
         `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
         {
-          public_id: `${Date.now()}-${file.originalname}`,
+          public_id: fileName
+            ? `${fileName}-${Date.now()}`
+            : Date.now().toString(),
           folder: folder.join('/'),
         },
       ),
     ).pipe(
       catchError(() => throwError('Upload failed')),
       map((res: UploadApiResponse) => {
-        return res.url;
+        console.log('UploadApiResponse', res);
+        return res.public_id;
       }),
     );
   }
@@ -33,8 +41,7 @@ export class UploadService {
   removeFile(path: string): Observable<string> {
     return from(cloudinary.uploader.destroy(path)).pipe(
       map((res: UploadApiResponse) => {
-        console.log('remove d', res);
-        return res.url;
+        return res.public_id;
       }),
     );
   }
