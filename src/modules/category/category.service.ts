@@ -22,7 +22,7 @@ export class CategoryService {
     page: number,
     pageSize: number,
   ): Observable<PaginationResponse<Category>> {
-    const skip = page * pageSize;
+    const skip = (page - 1) * pageSize;
     return from(this.categoryModel.countDocuments()).pipe(
       mergeMap(total => {
         return from(

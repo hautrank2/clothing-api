@@ -6,6 +6,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import configuration from './config/configuration';
 import { ConfigModule } from '@nestjs/config';
 import { UploadService } from './services/upload.service';
+import { ProductModule } from './modules/product/product.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { UploadService } from './services/upload.service';
     }),
     MongooseModule.forRoot(process.env.MONGO_CONNECTION_STRING || ''),
     CategoryModule,
+    ProductModule,
   ],
   controllers: [AppController],
   providers: [AppService, UploadService],

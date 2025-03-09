@@ -44,7 +44,6 @@ export class CategoryController {
     if (!file) {
       throw new BadRequestException('Image required');
     }
-
     return this.categoryService.codeIsExist(dto.code).pipe(
       mergeMap(codeIsExist =>
         codeIsExist
@@ -87,7 +86,6 @@ export class CategoryController {
     @Body() dto: UpdateCategoryDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    console.log('check request', id, dto, file);
     return this.categoryService.findOne(id).pipe(
       switchMap(data => {
         if (!data) {
