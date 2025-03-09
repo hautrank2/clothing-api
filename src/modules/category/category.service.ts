@@ -1,10 +1,11 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Category } from 'src/schemas/category.schema';
 import { Model, Types } from 'mongoose';
-import { from, map, Observable } from 'rxjs';
+import { from, map, mergeMap, Observable } from 'rxjs';
+import { PaginationResponse } from 'src/types/response';
 
 @Injectable()
 export class CategoryService {
@@ -17,8 +18,31 @@ export class CategoryService {
     return from(created.save());
   }
 
-  findAll(): Observable<Category[]> {
-    return from(this.categoryModel.find().exec());
+  findAll(
+    page: number,
+    pageSize: number,
+  ): Observable<PaginationResponse<Category>> {
+    const skip = page * pageSize;
+    return from(this.categoryModel.countDocuments()).pipe(
+      mergeMap(total => {
+        return from(
+          this.categoryModel
+            .find()
+            .skip(skip)
+            .limit(pageSize)
+            .populate('parentId')
+            .exec(),
+        ).pipe(
+          map((items: Category[]) => ({
+            items,
+            page,
+            pageSize,
+            total,
+            totalPage: total / page,
+          })),
+        );
+      }),
+    );
   }
 
   findOne(id: string): Observable<Category | null> {

@@ -11,6 +11,7 @@ import {
   BadRequestException,
   NotFoundException,
   InternalServerErrorException,
+  Query,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -70,8 +71,8 @@ export class CategoryController {
   }
 
   @Get()
-  findAll() {
-    return this.categoryService.findAll();
+  findAll(@Query('page') page: number, @Query('pageSize') pageSize: number) {
+    return this.categoryService.findAll(page, pageSize);
   }
 
   @Get(':id')
