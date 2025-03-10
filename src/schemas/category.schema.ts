@@ -16,6 +16,8 @@ export class Category extends Document {
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Category' })
   parentId?: string | null;
+
+  parent?: Category | null;
 }
 
 // Tạo Mongoose Schema từ class

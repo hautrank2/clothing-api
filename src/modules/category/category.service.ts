@@ -3,7 +3,7 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Category } from 'src/schemas/category.schema';
-import { Model, Types } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import { from, map, mergeMap, Observable } from 'rxjs';
 import { PaginationResponse } from 'src/types/response';
 
@@ -31,10 +31,24 @@ export class CategoryService {
             .skip(skip)
             .limit(pageSize)
             .populate('parentId')
+            .lean()
             .exec(),
         ).pipe(
           map((items: Category[]) => ({
-            items,
+            items: items.map(item => {
+              const parentId = item.parentId as
+                | Category
+                | mongoose.Types.ObjectId
+                | null;
+              return {
+                ...item,
+                parent: item.parentId || null,
+                parentId:
+                  typeof parentId === 'object' && parentId !== null
+                    ? parentId._id
+                    : parentId,
+              };
+            }) as Category[],
             page,
             pageSize,
             total,
@@ -46,8 +60,7 @@ export class CategoryService {
   }
 
   findOne(id: string): Observable<Category | null> {
-    const objectId = new Types.ObjectId(id); // Chuyển đổi ID thành ObjectId
-    return from(this.categoryModel.findById(objectId).exec());
+    return from(this.categoryModel.findById(id).exec());
   }
 
   update(id: string, updateCategoryDto: UpdateCategoryDto) {

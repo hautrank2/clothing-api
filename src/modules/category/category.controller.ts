@@ -74,9 +74,9 @@ export class CategoryController {
     return this.categoryService.findAll(page, pageSize);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.categoryService.findOne(id);
+  @Get(':code')
+  findOne(@Param('code') code: string) {
+    return this.categoryService.findByCode(code).pipe(map(e => e[0]));
   }
 
   @Patch(':id')
@@ -125,7 +125,7 @@ export class CategoryController {
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.findOne(id).pipe(
+    return this.categoryService.findOne(id).pipe(
       switchMap(category => {
         if (!category) {
           return throwError(
