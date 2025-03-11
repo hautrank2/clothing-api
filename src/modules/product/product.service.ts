@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import { Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import { Product } from 'src/schemas/product.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { forkJoin, from, map, Observable } from 'rxjs';
 import { PaginationResponse } from 'src/types/response';
 import { prettyObject } from 'src/types/common';
+import { Category } from 'src/schemas/category.schema';
 
 @Injectable()
 export class ProductService {
@@ -29,11 +30,31 @@ export class ProductService {
     return forkJoin({
       total: from(this.productModel.countDocuments(filter)),
       items: from(
-        this.productModel.find(filter).skip(skip).limit(pageSize).exec(),
+        this.productModel
+          .find(filter)
+          .skip(skip)
+          .limit(pageSize)
+          .populate('categoryId')
+          .lean()
+          .exec(),
       ),
     }).pipe(
       map(({ total, items }) => ({
-        items,
+        items: items.map(item => {
+          const categoryId = item.categoryId as
+            | Category
+            | mongoose.Types.ObjectId
+            | string;
+          console.log(categoryId);
+          return {
+            ...item,
+            category: item.categoryId || null,
+            categoryId:
+              typeof categoryId === 'object' && categoryId !== null
+                ? categoryId?._id
+                : categoryId,
+          };
+        }) as Product[],
         page,
         pageSize,
         total,
@@ -60,7 +81,9 @@ export class ProductService {
 
   codeIsExist(code: string): Observable<boolean> {
     return from(this.productModel.find({ code }).exec()).pipe(
-      map(e => e && e.length > 0),
+      map(e => {
+        return e && e.length > 0;
+      }),
     );
   }
 

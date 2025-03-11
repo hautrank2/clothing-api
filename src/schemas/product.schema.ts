@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Document, SchemaTypes } from 'mongoose';
+import mongoose, { Document, SchemaTypes } from 'mongoose';
+import { Category } from './category.schema';
 
 export type Color =
   | 'black'
@@ -60,7 +61,11 @@ export class Product extends Document {
   @Prop({ required: true })
   price: number;
 
-  @Prop({ required: true })
+  @Prop({
+    required: true,
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Category',
+  })
   categoryId: string;
 
   @Prop()
@@ -77,6 +82,8 @@ export class Product extends Document {
     ],
   })
   colors: ProductColor[];
+
+  category: Category | null;
 }
 
 export const ProductSchema = SchemaFactory.createForClass(Product);
