@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
-import mongoose, { Model } from 'mongoose';
+import mongoose, { FilterQuery, Model } from 'mongoose';
 import { Product } from 'src/schemas/product.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { forkJoin, from, map, Observable } from 'rxjs';
@@ -63,16 +63,30 @@ export class ProductService {
     );
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} product`;
+  findOne(id: string): Observable<Product | null> {
+    return from(this.productModel.findById(id).exec());
   }
 
-  update(id: number, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
+  update(id: string, updateProductDto: UpdateProductDto) {
+    return from(
+      this.productModel.findByIdAndUpdate(id, updateProductDto, {
+        new: true,
+        runValidators: true,
+      }),
+    );
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} product`;
+  updateByQuery(id: string, query: FilterQuery<Product>) {
+    return from(
+      this.productModel.findByIdAndUpdate(id, query, {
+        new: true,
+        runValidators: true,
+      }),
+    );
+  }
+
+  remove(id: string): Observable<Product | null> {
+    return from(this.productModel.findByIdAndDelete(id).exec());
   }
 
   findByCode(code: string): Observable<Product[] | []> {

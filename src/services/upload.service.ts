@@ -18,7 +18,6 @@ export class UploadService {
     folder: string[],
     fileName?: string,
   ): Observable<string> {
-    console.log('upload file', file);
     return from(
       cloudinary.uploader.upload(
         `data:${file.mimetype};base64,${file.buffer.toString('base64')}`,
@@ -32,7 +31,6 @@ export class UploadService {
     ).pipe(
       catchError(() => throwError('Upload failed')),
       map((res: UploadApiResponse) => {
-        console.log('UploadApiResponse', res);
         return res.public_id;
       }),
     );

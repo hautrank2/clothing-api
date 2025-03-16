@@ -98,7 +98,6 @@ export class CategoryController {
                 () => new BadRequestException(`Code ${dto.code} exists`),
               );
             }
-            console.log('uploadService');
             return file
               ? this.uploadService
                   .uploadFile(file, ['clothes', 'category'], dto.code)
