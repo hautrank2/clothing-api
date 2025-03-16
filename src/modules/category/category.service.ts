@@ -52,7 +52,7 @@ export class CategoryService {
             page,
             pageSize,
             total,
-            totalPage: total / page,
+            totalPage: Math.ceil(total / pageSize),
           })),
         );
       }),

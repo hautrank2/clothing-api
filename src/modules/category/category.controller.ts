@@ -70,8 +70,8 @@ export class CategoryController {
   }
 
   @Get()
-  findAll(@Query('page') page: number, @Query('pageSize') pageSize: number) {
-    return this.categoryService.findAll(page, pageSize);
+  findAll(@Query('page') page: string, @Query('pageSize') pageSize: string) {
+    return this.categoryService.findAll(+page, +pageSize);
   }
 
   @Get(':code')

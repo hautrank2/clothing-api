@@ -63,8 +63,12 @@ export class ProductController {
   }
 
   @Get()
-  findAll(@Query('page') page: number, @Query('pageSize') pageSize: number) {
-    return this.productService.findAll(+page, +pageSize);
+  findAll(
+    @Query('page') page: number,
+    @Query('pageSize') pageSize: number,
+    @Query('categoryId') categoryId?: string,
+  ) {
+    return this.productService.findAll(+page, +pageSize, { categoryId });
   }
 
   @Get('/categoryCode/:categoryCode')
@@ -87,7 +91,10 @@ export class ProductController {
           );
         }
         // eslint-disable-next-line @typescript-eslint/no-base-to-string
-        return this.productService.findAll(1, 100, cate._id.toString());
+        return this.productService.findAll(1, 100, {
+          // eslint-disable-next-line @typescript-eslint/no-base-to-string
+          categoryId: cate._id.toString(),
+        });
       }),
     );
   }

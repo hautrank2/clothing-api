@@ -23,10 +23,10 @@ export class ProductService {
   findAll(
     page: number,
     pageSize: number,
-    categoryId?: string,
+    options?: Record<string, any>,
   ): Observable<PaginationResponse<Product>> {
     const skip = (page - 1) * pageSize;
-    const filter = prettyObject({ categoryId });
+    const filter = options ? prettyObject(options) : {};
     return forkJoin({
       total: from(this.productModel.countDocuments(filter)),
       items: from(
