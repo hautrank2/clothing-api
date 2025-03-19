@@ -7,6 +7,9 @@ import configuration from './config/configuration';
 import { ConfigModule } from '@nestjs/config';
 import { UploadService } from './services/upload.service';
 import { ProductModule } from './modules/product/product.module';
+import { UserModule } from './modules/user/user.module';
+import { APP_PIPE } from '@nestjs/core';
+import { ValidationPipe } from './config/validation.pipe';
 
 @Module({
   imports: [
@@ -15,12 +18,20 @@ import { ProductModule } from './modules/product/product.module';
       isGlobal: true,
       load: [configuration],
     }),
-    MongooseModule.forRoot(process.env.MONGO_CONNECTION_STRING || ''),
+    MongooseModule.forRoot(process.env.DATABASE_URL || ''),
     CategoryModule,
     ProductModule,
+    UserModule,
   ],
   controllers: [AppController],
-  providers: [AppService, UploadService],
+  providers: [
+    AppService,
+    UploadService,
+    {
+      provide: APP_PIPE,
+      useClass: ValidationPipe,
+    },
+  ],
   exports: [UploadService],
 })
 export class AppModule {}
