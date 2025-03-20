@@ -22,22 +22,18 @@ export class UserService {
   }
 
   findByFilter(
-    page: number,
-    pageSize: number,
+    page: number = 1,
+    pageSize: number = 10,
     options?: Record<string, any>,
   ): Observable<PaginationResponse<User>> {
+    page = !page ? 1 : page;
+    pageSize = !pageSize ? 10 : pageSize;
     const skip = (page - 1) * pageSize;
     const filter = options ? prettyObject(options) : {};
     return forkJoin({
       total: from(this.userModel.countDocuments(filter)),
       items: from(
-        this.userModel
-          .find(filter)
-          .skip(skip)
-          .limit(pageSize)
-          .populate('categoryId')
-          .lean()
-          .exec(),
+        this.userModel.find(filter).skip(skip).limit(pageSize).lean().exec(),
       ),
     }).pipe(
       map(({ total, items }) => ({
@@ -63,6 +59,6 @@ export class UserService {
   }
 
   remove(id: string) {
-    return `This action removes a #${id} user`;
+    return from(this.userModel.deleteOne({ _id: id }).exec());
   }
 }

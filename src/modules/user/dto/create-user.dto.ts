@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsNotEmpty,
   MaxLength,
@@ -10,14 +10,16 @@ import {
   IsEnum,
 } from 'class-validator';
 import { RoleType, Address } from 'src/schemas/user.schema';
+import { AtLeastOne } from 'src/utils/validate';
 
 export class CreateUserDto {
   @IsNotEmpty()
   @MaxLength(20, { message: 'Username is too long' })
   username: string;
 
-  @IsNotEmpty()
+  @IsOptional()
   @IsEmail()
+  @Transform(({ value }): string => value ?? '')
   email: string;
 
   @IsNotEmpty({ message: 'Password is required' })
@@ -27,6 +29,7 @@ export class CreateUserDto {
 
   @IsOptional()
   @MaxLength(11, { message: 'Phone number is too long' })
+  @Transform(({ value }): string => value ?? '')
   phone: string;
 
   @IsOptional()
@@ -48,4 +51,9 @@ export class CreateUserDto {
   @IsOptional()
   @IsArray({ message: 'Address must be an array' })
   address: Address[];
+
+  @AtLeastOne(['email', 'phone'], {
+    message: 'Email or phone number is required',
+  })
+  emailOrPhone: string;
 }

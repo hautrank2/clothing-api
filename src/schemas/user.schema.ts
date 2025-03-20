@@ -12,6 +12,7 @@ import {
   IsArray,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { AtLeastOne } from 'src/utils/validate';
 
 export type UserDocument = User & Document;
 
@@ -66,8 +67,8 @@ export class User {
   @MaxLength(20, { message: 'Username is too long' })
   username: string;
 
-  @Prop({ required: true })
-  @IsNotEmpty()
+  @Prop({ default: '' })
+  @IsOptional()
   @IsEmail()
   email: string;
 
@@ -77,7 +78,7 @@ export class User {
   @MaxLength(50, { message: 'Password is too long' })
   password: string;
 
-  @Prop({ required: true, default: '' })
+  @Prop({ default: '' })
   @IsOptional()
   @MaxLength(11, { message: 'Phone number is too long' })
   phone: string;
@@ -105,6 +106,11 @@ export class User {
   @IsOptional()
   @IsArray({ message: 'Address must be an array' })
   address: Address[];
+
+  @AtLeastOne(['email', 'phone'], {
+    message: 'Email or phone number is required',
+  })
+  emailOrPhone: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

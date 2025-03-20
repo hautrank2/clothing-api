@@ -10,6 +10,7 @@ import { ProductModule } from './modules/product/product.module';
 import { UserModule } from './modules/user/user.module';
 import { APP_PIPE } from '@nestjs/core';
 import { ValidationPipe } from './config/validation.pipe';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -22,16 +23,10 @@ import { ValidationPipe } from './config/validation.pipe';
     CategoryModule,
     ProductModule,
     UserModule,
+    AuthModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    UploadService,
-    {
-      provide: APP_PIPE,
-      useClass: ValidationPipe,
-    },
-  ],
+  providers: [AppService, UploadService],
   exports: [UploadService],
 })
 export class AppModule {}
