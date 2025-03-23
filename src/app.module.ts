@@ -26,7 +26,14 @@ import { AuthModule } from './modules/auth/auth.module';
     AuthModule,
   ],
   controllers: [AppController],
-  providers: [AppService, UploadService],
+  providers: [
+    AppService,
+    UploadService,
+    {
+      provide: APP_PIPE,
+      useClass: ValidationPipe,
+    },
+  ],
   exports: [UploadService],
 })
 export class AppModule {}

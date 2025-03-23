@@ -57,3 +57,9 @@ export class CreateUserDto {
   })
   emailOrPhone: string;
 }
+
+export class UserWithEmailDto {
+  @IsNotEmpty()
+  @IsEmail()
+  email: string;
+}

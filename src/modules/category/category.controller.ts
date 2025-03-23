@@ -41,7 +41,6 @@ export class CategoryController {
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: CreateCategoryDto,
   ) {
-    console.log('file', file);
     if (!file) {
       throw new BadRequestException('Image required');
     }

@@ -20,8 +20,8 @@ export function IsFile(
       constraints: [],
       options: validationOptions,
       validator: {
-        validate(value: any) {
-          console.log(value, options);
+        validate(value: any, args) {
+          console.log(value, options, args);
           if (!value || typeof value !== 'object') return false; // Kiểm tra tránh lỗi
           const file = value as Express.Multer.File; // Ép kiểu an toàn
           return options?.mime ? options.mime.includes(file.mimetype) : true;

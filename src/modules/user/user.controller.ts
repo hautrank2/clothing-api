@@ -8,9 +8,10 @@ import {
   Delete,
   BadRequestException,
   InternalServerErrorException,
+  Query,
 } from '@nestjs/common';
 import { UserService } from './user.service';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto, UserWithEmailDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { catchError, mergeMap, switchMap, throwError } from 'rxjs';
@@ -18,6 +19,19 @@ import { catchError, mergeMap, switchMap, throwError } from 'rxjs';
 @Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
+
+  @Post('createWithEmail')
+  createWithEmail(@Body() dto: UserWithEmailDto) {
+    return this.userService.findOneByQuery(dto).pipe(
+      mergeMap(user => {
+        if (user)
+          return throwError(
+            () => new BadRequestException('Email already exists'),
+          );
+        return this.userService.createWithEmail(dto);
+      }),
+    );
+  }
 
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
@@ -57,6 +71,12 @@ export class UserController {
   @Get()
   findAll() {
     return this.userService.findAll();
+  }
+
+  @Get('filter')
+  findByFilter(@Query() query: { [key: string]: string }) {
+    console.log('query', query);
+    return this.userService.findOneByQuery(query);
   }
 
   @Get(':id')

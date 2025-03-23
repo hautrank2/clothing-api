@@ -72,8 +72,8 @@ export class User {
   @IsEmail()
   email: string;
 
-  @Prop({ required: true })
-  @IsNotEmpty({ message: 'Password is required' })
+  @Prop()
+  @IsOptional({ message: 'Password is required' })
   @MinLength(6, { message: 'Password is too short' })
   @MaxLength(50, { message: 'Password is too long' })
   password: string;

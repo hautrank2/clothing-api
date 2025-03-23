@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserDto, UserWithEmailDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { forkJoin, from, map, Observable } from 'rxjs';
 import { InjectModel } from '@nestjs/mongoose';
@@ -14,6 +14,15 @@ export class UserService {
 
   create(createUserDto: CreateUserDto) {
     const created = new this.userModel(createUserDto);
+    return from(created.save());
+  }
+
+  createWithEmail(dto: UserWithEmailDto) {
+    const created = new this.userModel({
+      name: dto.email,
+      username: dto.email,
+      email: dto.email,
+    });
     return from(created.save());
   }
 
