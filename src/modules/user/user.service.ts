@@ -20,7 +20,7 @@ export class UserService {
   createWithEmail(dto: UserWithEmailDto) {
     const created = new this.userModel({
       name: dto.email,
-      username: dto.email,
+      username: dto.email.split('@').shift(),
       email: dto.email,
     });
     return from(created.save());

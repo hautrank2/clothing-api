@@ -4,15 +4,18 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import mongoose, { FilterQuery, Model } from 'mongoose';
 import { Product } from 'src/schemas/product.schema';
 import { InjectModel } from '@nestjs/mongoose';
-import { forkJoin, from, map, Observable } from 'rxjs';
+import { forkJoin, from, map, mergeMap, Observable } from 'rxjs';
 import { PaginationResponse } from 'src/types/response';
 import { prettyObject } from 'src/types/common';
 import { Category } from 'src/schemas/category.schema';
+import { CategoryService } from '../category/category.service';
 
 @Injectable()
 export class ProductService {
   constructor(
     @InjectModel(Product.name) private productModel: Model<Product>,
+    @InjectModel(Category.name) private categoryModel: Model<Category>,
+    private categoryService: CategoryService,
   ) {}
 
   create(createProductDto: CreateProductDto) {
@@ -27,40 +30,56 @@ export class ProductService {
   ): Observable<PaginationResponse<Product>> {
     const skip = (page - 1) * pageSize;
     const filter = options ? prettyObject(options) : {};
-    return forkJoin({
-      total: from(this.productModel.countDocuments(filter)),
-      items: from(
-        this.productModel
-          .find(filter)
-          .skip(skip)
-          .limit(pageSize)
-          .populate('categoryId')
-          .lean()
-          .exec(),
-      ),
-    }).pipe(
-      map(({ total, items }) => ({
-        items: items.map(item => {
-          const categoryId = item.categoryId as
-            | Category
-            | mongoose.Types.ObjectId
-            | string;
-          console.log(categoryId);
-          return {
-            ...item,
-            category: item.categoryId || null,
-            categoryId:
-              typeof categoryId === 'object' && categoryId !== null
-                ? categoryId?._id
-                : categoryId,
-          };
-        }) as Product[],
-        page,
-        pageSize,
-        total,
-        totalPage: Math.ceil(total / pageSize),
-      })),
-    );
+
+    const getProduct = (categoryIds: string[]) => {
+      delete filter.categoryId;
+      return forkJoin({
+        total: from(this.productModel.countDocuments(filter)),
+        items: from(
+          this.productModel
+            .find({ ...filter, categoryId: { $in: categoryIds } })
+            .skip(skip)
+            .limit(pageSize)
+            .populate('categoryId')
+            .lean()
+            .exec(),
+        ),
+      }).pipe(
+        map(({ total, items }) => ({
+          items: items.map(item => {
+            const categoryId = item.categoryId as
+              | Category
+              | mongoose.Types.ObjectId
+              | string;
+            console.log(categoryId);
+            return {
+              ...item,
+              category: item.categoryId || null,
+              categoryId:
+                typeof categoryId === 'object' && categoryId !== null
+                  ? categoryId?._id
+                  : categoryId,
+            };
+          }) as Product[],
+          page,
+          pageSize,
+          total,
+          totalPage: Math.ceil(total / pageSize),
+        })),
+      );
+    };
+
+    if (filter?.categoryId && typeof filter.categoryId === 'string') {
+      return this.categoryService
+        .findCategoryWithAllChildren(filter.categoryId)
+        .pipe(
+          mergeMap((categories: Category[]) => {
+            return getProduct(categories.map(e => String(e._id) || '') || []);
+          }),
+        );
+    }
+
+    return getProduct([String(filter?.categoryId) || '']);
   }
 
   findOne(id: string): Observable<Product | null> {

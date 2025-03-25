@@ -4,7 +4,7 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Category } from 'src/schemas/category.schema';
 import mongoose, { Model } from 'mongoose';
-import { from, map, mergeMap, Observable } from 'rxjs';
+import { from, map, mergeMap, Observable, of } from 'rxjs';
 import { PaginationResponse } from 'src/types/response';
 
 @Injectable()
@@ -72,7 +72,24 @@ export class CategoryService {
   }
 
   findByCode(code: string): Observable<Category[] | []> {
-    return from(this.categoryModel.find({ code }).exec());
+    return from(
+      this.categoryModel.find({ code }).populate('parentId').lean().exec(),
+    ).pipe(
+      map(dt => {
+        return dt.map(cate => {
+          const parentId = cate.parentId as Category | string;
+          const parent = parentId || null;
+          return {
+            ...cate,
+            parentId:
+              typeof parentId === 'object' && parentId !== null
+                ? String(parentId._id)
+                : parentId,
+            parent,
+          } as Category;
+        });
+      }),
+    );
   }
 
   codeIsExist(code: string): Observable<boolean> {
@@ -85,5 +102,25 @@ export class CategoryService {
     return from(
       this.categoryModel.findOne({ code, _id: { $ne: id } }).exec(),
     ).pipe(map(e => !!e));
+  }
+
+  findCategoryWithAllChildren(id: string): Observable<Category[]> {
+    return from(
+      this.categoryModel.findById(id).populate('parentId').lean(),
+    ).pipe(
+      mergeMap((parent: Category | null) => {
+        if (!parent) {
+          return of([]);
+        }
+        if (parent)
+          return from(
+            this.categoryModel
+              .findOne({ parentId: parent._id })
+              .populate('parentId')
+              .lean(),
+          ).pipe(map(cate => (cate ? [parent, cate] : [parent])));
+        return of([parent]);
+      }),
+    );
   }
 }
