@@ -7,10 +7,15 @@ import { User } from 'src/schemas/user.schema';
 import { FilterQuery, Model } from 'mongoose';
 import { PaginationResponse } from 'src/types/response';
 import { prettyObject } from 'src/types/common';
+import { Cart } from 'src/schemas/cart.schema';
+import { Item } from 'src/schemas/item.schema';
 
 @Injectable()
 export class UserService {
-  constructor(@InjectModel(User.name) private userModel: Model<User>) {}
+  constructor(
+    @InjectModel(User.name) private userModel: Model<User>,
+    @InjectModel(User.name) private cartModel: Model<Cart>,
+  ) {}
 
   create(createUserDto: CreateUserDto) {
     const created = new this.userModel(createUserDto);
@@ -60,7 +65,7 @@ export class UserService {
   }
 
   findOne(id: string) {
-    return `This action returns a #${id} user`;
+    return from(this.userModel.findById(id).lean().exec());
   }
 
   update(id: string, updateUserDto: UpdateUserDto) {
@@ -70,4 +75,6 @@ export class UserService {
   remove(id: string) {
     return from(this.userModel.deleteOne({ _id: id }).exec());
   }
+
+  addItem(item: Item, userId: string) {}
 }

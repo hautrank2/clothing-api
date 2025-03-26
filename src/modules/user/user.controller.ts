@@ -9,16 +9,22 @@ import {
   BadRequestException,
   InternalServerErrorException,
   Query,
+  NotFoundException,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto, UserWithEmailDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
 import { catchError, mergeMap, switchMap, throwError } from 'rxjs';
+import { Item } from 'src/schemas/item.schema';
+import { CartService } from '../cart/cart.service';
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly cartService: CartService,
+  ) {}
 
   @Post('createWithEmail')
   createWithEmail(@Body() dto: UserWithEmailDto) {
@@ -29,6 +35,25 @@ export class UserController {
             () => new BadRequestException('Email already exists'),
           );
         return this.userService.createWithEmail(dto);
+      }),
+    );
+  }
+
+  @Post('addItem/:userId')
+  addItem(@Body() item: Item, @Query() userId: string) {
+    return this.userService.findOne(userId).pipe(
+      mergeMap((user: User | null) => {
+        if (!user) {
+          return throwError(() => new NotFoundException('User not found'));
+        }
+        return this.cartService.findByUserId(user._id).pipe(
+          mergeMap(cart => {
+            if (!cart) {
+              return throwError(() => new NotFoundException('Cart not found'));
+            }
+            return this.cartService.addItem(item, userId);
+          }),
+        );
       }),
     );
   }
