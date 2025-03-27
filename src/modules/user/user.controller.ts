@@ -15,9 +15,18 @@ import { UserService } from './user.service';
 import { CreateUserDto, UserWithEmailDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
-import { catchError, mergeMap, switchMap, throwError } from 'rxjs';
+import {
+  catchError,
+  mergeMap,
+  Observable,
+  of,
+  switchMap,
+  throwError,
+} from 'rxjs';
 import { Item } from 'src/schemas/item.schema';
 import { CartService } from '../cart/cart.service';
+import { User } from 'src/schemas/user.schema';
+import { Cart } from 'src/schemas/cart.schema';
 
 @Controller('user')
 export class UserController {
@@ -39,21 +48,17 @@ export class UserController {
     );
   }
 
-  @Post('addItem/:userId')
-  addItem(@Body() item: Item, @Query() userId: string) {
+  @Post('/addItem/:userId')
+  addItem(
+    @Body() item: Item,
+    @Param('userId') userId: string,
+  ): Observable<Cart | null> {
     return this.userService.findOne(userId).pipe(
       mergeMap((user: User | null) => {
         if (!user) {
           return throwError(() => new NotFoundException('User not found'));
         }
-        return this.cartService.findByUserId(user._id).pipe(
-          mergeMap(cart => {
-            if (!cart) {
-              return throwError(() => new NotFoundException('Cart not found'));
-            }
-            return this.cartService.addItem(item, userId);
-          }),
-        );
+        return this.cartService.addItem(item, userId);
       }),
     );
   }
@@ -102,6 +107,18 @@ export class UserController {
   findByFilter(@Query() query: { [key: string]: string }) {
     console.log('query', query);
     return this.userService.findOneByQuery(query);
+  }
+
+  @Get('/cart/:id')
+  findCart(@Param('id') id: string) {
+    return this.cartService.findByUserId(id).pipe(
+      mergeMap(cart => {
+        if (!cart) {
+          return throwError(() => new BadRequestException('Cart not found'));
+        }
+        return of(cart);
+      }),
+    );
   }
 
   @Get(':id')

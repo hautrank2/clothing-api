@@ -3,7 +3,7 @@ import { CreateCartDto } from './dto/create-cart.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { Cart } from 'src/schemas/cart.schema';
-import { from, mergeMap } from 'rxjs';
+import { from, mergeMap, Observable } from 'rxjs';
 import { Item } from 'src/schemas/item.schema';
 
 @Injectable()
@@ -16,7 +16,11 @@ export class CartService {
   }
 
   findByUserId(userId: string) {
-    return from(this.cartModel.findOne({ user: userId }).lean().exec());
+    return from(
+      this.cartModel
+        .findOne({ user: userId.toString() })
+        .populate('items.product'),
+    );
   }
 
   findAll() {
@@ -27,9 +31,12 @@ export class CartService {
     return `This action returns a #${id} cart`;
   }
 
-  update(id: string, updateCartDto: Cart) {
+  update(id: string, updateCartDto: Cart): Observable<Cart | null> {
     return from(
-      this.cartModel.findByIdAndUpdate(id, updateCartDto).lean().exec(),
+      this.cartModel
+        .findByIdAndUpdate(id, updateCartDto, { new: true })
+        .lean()
+        .exec(),
     );
   }
 
@@ -37,7 +44,7 @@ export class CartService {
     return `This action removes a #${id} cart`;
   }
 
-  addItem(item: Item, userId: string) {
+  addItem(item: Item, userId: string): Observable<Cart | null> {
     return from(
       this.findByUserId(userId).pipe(
         mergeMap((cart: Cart | null) => {
@@ -46,7 +53,8 @@ export class CartService {
           }
           const currItem = this.findItem(item, cart);
           if (currItem) {
-            currItem.quantity = currItem.quantity + item.quantity;
+            currItem.item.quantity = currItem.item.quantity + item.quantity;
+            cart[currItem.index] = currItem.item;
           } else {
             cart.items.push(item);
           }
@@ -56,12 +64,11 @@ export class CartService {
     );
   }
 
-  findItem(item: Item, cart: Cart): Item | null {
-    // compared item
-    return (
-      cart.items.find(
-        it => it.color === item.color && it.productId === item.productId,
-      ) || null
+  findItem(item: Item, cart: Cart): { item: Item; index: number } | null {
+    const index = cart.items.findIndex(
+      it => it.color === item.color && it.product === item.product,
     );
+    // compared item
+    return index !== -1 ? { item: cart.items[index], index } : null;
   }
 }

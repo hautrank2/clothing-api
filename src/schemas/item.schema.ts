@@ -1,11 +1,8 @@
-import mongoose from 'mongoose';
+import { Product } from './product.schema';
 
 export interface Item {
-  productId: mongoose.Types.ObjectId;
+  product: string | Product;
   size: string;
-  color?: string;
+  color: string;
   quantity: number;
-  price: number;
-  imageUrl?: string;
-  name?: string;
 }

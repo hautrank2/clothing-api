@@ -61,7 +61,7 @@ export class Address {
 }
 
 @Schema({ timestamps: true })
-export class User {
+export class User extends Document {
   @Prop({ required: true })
   @IsNotEmpty()
   @MaxLength(20, { message: 'Username is too long' })
