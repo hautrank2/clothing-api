@@ -14,7 +14,6 @@ import { CategoryService } from '../category/category.service';
 export class ProductService {
   constructor(
     @InjectModel(Product.name) private productModel: Model<Product>,
-    @InjectModel(Category.name) private categoryModel: Model<Category>,
     private categoryService: CategoryService,
   ) {}
 

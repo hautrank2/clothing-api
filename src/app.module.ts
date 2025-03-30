@@ -12,6 +12,7 @@ import { APP_PIPE } from '@nestjs/core';
 import { ValidationPipe } from './config/validation.pipe';
 import { AuthModule } from './modules/auth/auth.module';
 import { CartModule } from './modules/cart/cart.module';
+import { OrderModule } from './modules/order/order.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { CartModule } from './modules/cart/cart.module';
     UserModule,
     AuthModule,
     CartModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [

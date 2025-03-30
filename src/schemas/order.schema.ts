@@ -28,18 +28,21 @@ export class Order extends Document {
       size: { type: String, required: true },
       color: { type: String },
       quantity: { type: Number, required: true },
-      price: { type: Number, required: true },
-      name: { type: String },
-      imageUrl: { type: String },
     },
   ])
   items: Item[];
 
   @Prop({ type: Number, required: true })
+  shippingFee: number;
+
+  @Prop({ type: Number, required: true })
   totalPrice: number;
 
   @Prop({ type: Address, required: true })
-  shippingAddress: Address;
+  address: Address;
+
+  @Prop({ type: String, required: true })
+  phone: string;
 
   @Prop({
     type: String,
