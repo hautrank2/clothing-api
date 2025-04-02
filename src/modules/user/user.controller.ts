@@ -10,6 +10,7 @@ import {
   InternalServerErrorException,
   Query,
   NotFoundException,
+  Put,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto, UserWithEmailDto } from './dto/create-user.dto';
@@ -25,7 +26,7 @@ import {
 } from 'rxjs';
 import { Item } from 'src/schemas/item.schema';
 import { CartService } from '../cart/cart.service';
-import { User } from 'src/schemas/user.schema';
+import { Address, User } from 'src/schemas/user.schema';
 import { Cart } from 'src/schemas/cart.schema';
 
 @Controller('user')
@@ -119,6 +120,11 @@ export class UserController {
         return of(cart);
       }),
     );
+  }
+
+  @Put('/:id/address')
+  updateAddress(@Param('id') id: string, @Body() dto: Address[]) {
+    return this.userService.updateAddress(id, dto);
   }
 
   @Get(':id')

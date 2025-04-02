@@ -3,7 +3,7 @@ import { CreateUserDto, UserWithEmailDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { forkJoin, from, map, Observable } from 'rxjs';
 import { InjectModel } from '@nestjs/mongoose';
-import { User } from 'src/schemas/user.schema';
+import { Address, User } from 'src/schemas/user.schema';
 import { FilterQuery, Model } from 'mongoose';
 import { PaginationResponse } from 'src/types/response';
 import { prettyObject } from 'src/types/common';
@@ -77,4 +77,14 @@ export class UserService {
   }
 
   addItem(item: Item, userId: string) {}
+
+  updateAddress(id: string, dto: Address[]) {
+    return from(
+      this.userModel.findByIdAndUpdate(
+        id,
+        { address: { $set: dto } },
+        { new: true },
+      ),
+    );
+  }
 }
