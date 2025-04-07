@@ -23,6 +23,16 @@ export class OrderService {
     return `This action returns a #${id} order`;
   }
 
+  findByUserId(userId: string) {
+    return from(
+      this.orderModel
+        .find({ user: userId })
+        .populate('items.product')
+        .lean()
+        .exec(),
+    );
+  }
+
   update(id: number, updateOrderDto: UpdateOrderDto) {
     return `This action updates a #${id} order`;
   }

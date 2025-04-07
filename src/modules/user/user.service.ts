@@ -82,7 +82,11 @@ export class UserService {
     return from(
       this.userModel.findByIdAndUpdate(
         id,
-        { address: { $set: dto } },
+        {
+          $set: {
+            address: dto,
+          },
+        },
         { new: true },
       ),
     );

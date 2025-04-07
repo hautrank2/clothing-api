@@ -16,7 +16,7 @@ export interface Item {
 
 export class ItemDto {
   @IsMongoId()
-  productId: string;
+  product: string;
 
   @IsString()
   @IsNotEmpty()

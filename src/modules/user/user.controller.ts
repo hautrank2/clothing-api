@@ -28,12 +28,14 @@ import { Item } from 'src/schemas/item.schema';
 import { CartService } from '../cart/cart.service';
 import { Address, User } from 'src/schemas/user.schema';
 import { Cart } from 'src/schemas/cart.schema';
+import { OrderService } from '../order/order.service';
 
 @Controller('user')
 export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly cartService: CartService,
+    private readonly orderService: OrderService,
   ) {}
 
   @Post('createWithEmail')
@@ -120,6 +122,11 @@ export class UserController {
         return of(cart);
       }),
     );
+  }
+
+  @Get('/orders/:id')
+  findCartItems(@Param('id') id: string) {
+    return this.orderService.findByUserId(id);
   }
 
   @Put('/:id/address')

@@ -126,10 +126,9 @@ export class AddressDto {
 
   @IsString()
   @IsNotEmpty()
-  province: string;
+  district: string;
 
   @IsString()
-  @IsNotEmpty()
   postalCode: string;
 
   @IsString()
