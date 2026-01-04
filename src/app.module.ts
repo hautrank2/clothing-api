@@ -15,6 +15,7 @@ import { OrderModule } from './modules/order/order.module';
 import { AppGuard } from './app.guard';
 import configuration from './config/configuration';
 import { JwtModule } from '@nestjs/jwt';
+import { ProductVariantModule } from './modules/product-variant/product-variant.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { JwtModule } from '@nestjs/jwt';
     AuthModule,
     CartModule,
     OrderModule,
+    ProductVariantModule,
   ],
   controllers: [AppController],
   providers: [
