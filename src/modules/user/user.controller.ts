@@ -108,7 +108,6 @@ export class UserController {
 
   @Get('filter')
   findByFilter(@Query() query: { [key: string]: string }) {
-    console.log('query', query);
     return this.userService.findOneByQuery(query);
   }
 

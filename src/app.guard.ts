@@ -1,0 +1,36 @@
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import { Request } from 'express';
+import { ConfigService } from '@nestjs/config';
+
+@Injectable()
+export class AppGuard implements CanActivate {
+  constructor(
+    private jwtService: JwtService,
+    private configService: ConfigService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request: Request = context.switchToHttp().getRequest();
+    const token = this.extractTokenFromHeader(request);
+    if (token) {
+      try {
+        const payload = await this.jwtService.verifyAsync(token, {
+          secret: this.configService.get<string>('jwtSecret'),
+        });
+        // 💡 We're assigning the payload to the request object here
+        // so that we can access it in our route handlers
+        request['user'] = payload;
+      } catch (err) {
+        console.log('Error: verify token:');
+        console.log(err);
+      }
+    }
+    return true;
+  }
+
+  private extractTokenFromHeader(request: Request): string | undefined {
+    const [type, token] = request.headers.authorization?.split(' ') ?? [];
+    return type === 'Bearer' ? token : undefined;
+  }
+}

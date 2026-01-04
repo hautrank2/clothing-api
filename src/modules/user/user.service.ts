@@ -1,7 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto, UserWithEmailDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { forkJoin, from, map, Observable } from 'rxjs';
+import {
+  catchError,
+  forkJoin,
+  from,
+  map,
+  mergeMap,
+  Observable,
+  of,
+  throwError,
+} from 'rxjs';
 import { InjectModel } from '@nestjs/mongoose';
 import { Address, User } from 'src/schemas/user.schema';
 import { FilterQuery, Model } from 'mongoose';
@@ -60,8 +69,18 @@ export class UserService {
     );
   }
 
-  findOneByQuery(filter: FilterQuery<User>) {
-    return from(this.userModel.findOne(filter).lean().exec());
+  findOneByQuery(filter: FilterQuery<User>): Observable<User | null> {
+    return from(this.userModel.findOne(filter).lean().exec()).pipe(
+      mergeMap(user => {
+        if (!user) {
+          return of(null);
+        }
+        return of(user);
+      }),
+      catchError(err => {
+        return throwError(() => new NotFoundException(err));
+      }),
+    );
   }
 
   findOne(id: string) {

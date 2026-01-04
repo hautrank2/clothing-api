@@ -12,6 +12,7 @@ import {
   NotFoundException,
   UploadedFile,
   UseInterceptors,
+  UseGuards,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -31,7 +32,9 @@ import { Category } from 'src/schemas/category.schema';
 import { Product } from 'src/schemas/product.schema';
 import { UploadService } from 'src/services/upload.service';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { AdminGuard } from 'src/guards/admin.guard';
 
+@UseGuards(AdminGuard)
 @Controller('product')
 export class ProductController {
   constructor(

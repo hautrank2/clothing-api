@@ -12,6 +12,7 @@ import {
   NotFoundException,
   InternalServerErrorException,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -27,7 +28,9 @@ import {
   tap,
   throwError,
 } from 'rxjs';
+import { AdminGuard } from 'src/guards/admin.guard';
 
+@UseGuards(AdminGuard)
 @Controller('category')
 export class CategoryController {
   constructor(

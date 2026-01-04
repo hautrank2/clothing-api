@@ -30,13 +30,20 @@ export class ProductService {
     const skip = (page - 1) * pageSize;
     const filter = options ? prettyObject(options) : {};
 
-    const getProduct = (categoryIds: string[]) => {
+    const getProduct = (categoryIds?: string[]) => {
       delete filter.categoryId;
+
+      const mongoFilter = { ...filter };
+
+      if (categoryIds && categoryIds.length > 0) {
+        mongoFilter.categoryId = { $in: categoryIds };
+      }
+
       return forkJoin({
-        total: from(this.productModel.countDocuments(filter)),
+        total: from(this.productModel.countDocuments(mongoFilter)),
         items: from(
           this.productModel
-            .find({ ...filter, categoryId: { $in: categoryIds } })
+            .find(mongoFilter)
             .skip(skip)
             .limit(pageSize)
             .populate('categoryId')
@@ -50,13 +57,13 @@ export class ProductService {
               | Category
               | mongoose.Types.ObjectId
               | string;
-            console.log(categoryId);
+
             return {
               ...item,
               category: item.categoryId || null,
               categoryId:
                 typeof categoryId === 'object' && categoryId !== null
-                  ? categoryId?._id
+                  ? categoryId._id
                   : categoryId,
             };
           }) as Product[],
@@ -72,13 +79,14 @@ export class ProductService {
       return this.categoryService
         .findCategoryWithAllChildren(filter.categoryId)
         .pipe(
-          mergeMap((categories: Category[]) => {
-            return getProduct(categories.map(e => String(e._id) || '') || []);
-          }),
+          mergeMap((categories: Category[]) =>
+            getProduct(categories.map(e => String(e._id))),
+          ),
         );
     }
 
-    return getProduct([String(filter?.categoryId) || '']);
+    // KHÔNG có categoryId → lấy tất cả
+    return getProduct();
   }
 
   findOne(id: string): Observable<Product | null> {

@@ -5,6 +5,7 @@ import { UserService } from 'src/modules/user/user.service';
 import * as bcrypt from 'bcrypt';
 import { throwError } from 'rxjs';
 import { JwtService } from '@nestjs/jwt';
+import { JwtPayload } from 'src/types/auth';
 
 @Injectable()
 export class AuthService {
@@ -25,7 +26,6 @@ export class AuthService {
               ),
             );
           }
-          console.log(user);
           return from(bcrypt.compare(password, user.password)).pipe(
             mergeMap(isMatch => {
               if (!isMatch) {
@@ -33,7 +33,8 @@ export class AuthService {
                   new UnauthorizedException('Invalid password'),
                 );
               }
-              const payload = { id: user._id, username: user.username };
+
+              const payload: JwtPayload = user;
               return from(this.jwtService.signAsync(payload)).pipe(
                 map(token => ({ token, user })),
               );
