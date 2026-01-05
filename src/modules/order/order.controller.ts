@@ -1,83 +1,33 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Body,
-  Patch,
-  Param,
-  Delete,
-  BadRequestException,
-  Query,
-} from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Req } from '@nestjs/common';
 import { OrderService } from './order.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
-import { CartService } from '../cart/cart.service';
-import { concatMap, switchMap, throwError } from 'rxjs';
-import { Cart } from 'src/schemas/cart.schema';
-import { Item } from 'src/schemas/item.schema';
-import { Product } from 'src/schemas/product.schema';
 
 @Controller('order')
 export class OrderController {
-  constructor(
-    private readonly orderService: OrderService,
-    private readonly cartService: CartService,
-  ) {}
+  constructor(private readonly orderService: OrderService) {}
 
+  // 🧾 CHECKOUT
   @Post()
-  create(@Body() dto: CreateOrderDto) {
-    return this.cartService.findByUserId(dto.user).pipe(
-      switchMap((cart: Cart | null) => {
-        if (!cart) {
-          return throwError(() => new BadRequestException('Cart not found'));
-        }
-        // delete item or reduce quantity
-        cart.items = cart.items
-          .map((item: Item) => {
-            const orderItem = dto.items.find(orderItem => {
-              return (
-                orderItem.product ===
-                  (item.product as Product)._id?.toString() &&
-                orderItem.color === item.color &&
-                orderItem.size === item.size
-              );
-            });
-            if (orderItem) {
-              item.quantity -= orderItem.quantity;
-            }
-            return item;
-          })
-          .filter(item => item.quantity > 0);
-
-        return this.cartService.update(cart._id as string, cart).pipe(
-          concatMap(cart => {
-            // create order
-            return this.orderService.create(dto);
-          }),
-        );
-      }),
-    );
+  checkout(@Req() req: any, @Body() dto: CreateOrderDto) {
+    return this.orderService.checkout(req.user.id, dto);
   }
 
-  @Get()
-  findAll(@Query() query: { [key: string]: string }) {
-    const { page, pageSize, ...filter } = query;
-    return this.orderService.findByFilter(+page, +pageSize, filter);
+  // 👤 Order của user
+  @Get('me')
+  getMyOrders(@Req() req: any) {
+    return this.orderService.findByUser(req.user.id);
   }
 
+  // 📦 Chi tiết order
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.orderService.findOne(+id);
+    return this.orderService.findOne(id);
   }
 
+  // 🔧 ADMIN cập nhật status
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateOrderDto: UpdateOrderDto) {
-    return this.orderService.update(id, updateOrderDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.orderService.remove(+id);
+  update(@Param('id') id: string, @Body() dto: UpdateOrderDto) {
+    return this.orderService.updateStatus(id, dto);
   }
 }

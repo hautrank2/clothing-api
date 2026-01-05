@@ -1,20 +1,16 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { HydratedDocument, Types } from 'mongoose';
+import { Types, Document } from 'mongoose';
 
 export enum PaymentMethod {
   COD = 'cod',
-  MOMO = 'momo',
-  PAYPAL = 'paypal',
-  STRIPE = 'stripe',
+  BANK_TRANSFER = 'bank_transfer',
 }
 
 export enum PaymentStatus {
   PENDING = 'pending',
-  SUCCESS = 'success',
+  PAID = 'paid',
   FAILED = 'failed',
 }
-
-export type CategoryDocument = HydratedDocument<Payment>;
 
 @Schema({ timestamps: true })
 export class Payment extends Document {
@@ -24,22 +20,33 @@ export class Payment extends Document {
   @Prop({ type: Types.ObjectId, ref: 'User', required: true })
   userId: Types.ObjectId;
 
-  @Prop({ type: Number, required: true })
+  // SNAPSHOT số tiền cần thu
+  @Prop({ type: Number, required: true, min: 0 })
   amount: number;
 
-  @Prop({ type: String, enum: PaymentMethod, required: true })
+  @Prop({
+    type: String,
+    enum: PaymentMethod,
+    required: true,
+  })
   method: PaymentMethod;
 
-  @Prop({ type: String, enum: PaymentStatus, default: PaymentStatus.PENDING })
+  @Prop({
+    type: String,
+    enum: PaymentStatus,
+    default: PaymentStatus.PENDING,
+  })
   status: PaymentStatus;
 
-  @Prop({ type: String }) // Transaction ID từ bên thứ 3 (Stripe, Momo, etc.)
+  // Chỉ dùng cho chuyển khoản
+  @Prop({ type: String })
   transactionId?: string;
 
+  // Thời điểm thu tiền thành công
   @Prop({ type: Date })
   paidAt?: Date;
 
-  @Prop({ type: String }) // Ghi chú nếu cần (lỗi, lý do thất bại, etc.)
+  @Prop({ type: String })
   note?: string;
 }
 

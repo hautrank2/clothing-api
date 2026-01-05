@@ -1,60 +1,109 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import mongoose, { Document, HydratedDocument } from 'mongoose';
-import { Item } from './item.schema';
+import mongoose, { Document } from 'mongoose';
 import { Address } from './user.schema';
-
-export type OrderDocument = HydratedDocument<Order>;
 
 export enum OrderStatus {
   PENDING = 'pending',
   CONFIRMED = 'confirmed',
+  PAID = 'paid',
   SHIPPED = 'shipped',
   DELIVERED = 'delivered',
   CANCELLED = 'cancelled',
+  FAILED = 'failed',
 }
+
+@Schema({ _id: false })
+export class OrderItem {
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Product',
+    required: true,
+  })
+  productId: mongoose.Types.ObjectId;
+
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'ProductVariant',
+    required: true,
+  })
+  variantId: mongoose.Types.ObjectId;
+
+  // SNAPSHOT
+  @Prop({ required: true })
+  productTitle: string;
+
+  @Prop({ required: true })
+  sku: string;
+
+  @Prop({ required: true })
+  color: string;
+
+  @Prop({ required: true })
+  size: string;
+
+  @Prop({ required: true, min: 0 })
+  price: number; // priceAtPurchase
+
+  @Prop({ required: true, min: 1 })
+  quantity: number;
+}
+@Schema({ _id: false })
+export class OrderStatusTimestamps {
+  @Prop() pendingAt?: Date;
+  @Prop() confirmedAt?: Date;
+  @Prop() paidAt?: Date;
+  @Prop() shippedAt?: Date;
+  @Prop() deliveredAt?: Date;
+  @Prop() cancelledAt?: Date;
+  @Prop() failedAt?: Date;
+}
+
+export const OrderStatusTimestampsSchema = SchemaFactory.createForClass(
+  OrderStatusTimestamps,
+);
+
+export const OrderItemSchema = SchemaFactory.createForClass(OrderItem);
 
 @Schema({ timestamps: true })
 export class Order extends Document {
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
-  user: mongoose.Types.ObjectId;
+  userId: mongoose.Types.ObjectId;
 
-  @Prop([
-    {
-      product: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true,
-      },
-      size: { type: String, required: true },
-      color: { type: String },
-      quantity: { type: Number, required: true },
-    },
-  ])
-  items: Item[];
+  @Prop({ type: [OrderItemSchema], required: true })
+  items: OrderItem[];
 
-  @Prop({ type: Number, required: true })
+  @Prop({ required: true, min: 0 })
+  subtotal: number;
+
+  @Prop({ required: true, min: 0 })
   shippingFee: number;
 
-  @Prop({ type: Number, required: true })
+  @Prop({ required: true, min: 0 })
   totalPrice: number;
 
   @Prop({ type: Address, required: true })
   address: Address;
 
-  @Prop({ type: String, required: true })
+  @Prop({ required: true })
   phone: string;
+
+  @Prop({
+    type: OrderStatusTimestampsSchema,
+    default: {},
+  })
+  statusTimestamps: OrderStatusTimestamps;
 
   @Prop({
     type: String,
     enum: OrderStatus,
-    default: 'pending',
+    default: OrderStatus.PENDING,
   })
   status: OrderStatus;
 
   @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'Payment' })
   paymentId?: mongoose.Types.ObjectId;
 
-  @Prop({ type: Date })
+  @Prop()
   deliveredAt?: Date;
 }
 

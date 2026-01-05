@@ -1,114 +1,135 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { CreateCartDto } from './dto/create-cart.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import { Model, Types } from 'mongoose';
 import { Cart } from 'src/schemas/cart.schema';
-import { from, mergeMap, Observable, throwError } from 'rxjs';
-import { Item } from 'src/schemas/item.schema';
-import { ProductService } from '../product/product.service';
-import { ProductColor } from 'src/schemas/product.schema';
+import { ProductVariant } from 'src/schemas/product-variant.schema';
+import { from, mergeMap, map, Observable, of, throwError } from 'rxjs';
 
 @Injectable()
 export class CartService {
   constructor(
     @InjectModel(Cart.name) private cartModel: Model<Cart>,
-    private productService: ProductService,
+    @InjectModel(ProductVariant.name)
+    private variantModel: Model<ProductVariant>,
   ) {}
 
-  create(createCartDto: CreateCartDto) {
-    const cart = new this.cartModel(createCartDto);
-    return from(cart.save());
-  }
-
-  findByUserId(userId: string) {
-    return from(
-      this.cartModel
-        .findOne({ user: userId.toString() })
-        .populate('items.product'),
-    );
-  }
-
-  findAll() {
-    return `This action returns all cart`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} cart`;
-  }
-
-  update(id: string, updateCartDto: Cart): Observable<Cart | null> {
-    return from(
-      this.cartModel
-        .findByIdAndUpdate(id, updateCartDto, { new: true })
-        .lean()
-        .exec(),
-    );
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} cart`;
-  }
-
-  addItem(item: Item, userId: string): Observable<Cart | null> {
-    return from(
-      this.findByUserId(userId).pipe(
-        mergeMap((cart: Cart | null) => {
-          return this.productService.findOne(item.product as string).pipe(
-            mergeMap(product => {
-              if (!product)
-                return throwError(
-                  () => new BadRequestException('Product not found'),
-                );
-              // check quantity is still available
-              // find product variant
-              const pColor = product.colors.find(
-                (i: ProductColor) => i.color === item.color,
-              );
-              if (!pColor)
-                return throwError(
-                  () =>
-                    new BadRequestException(
-                      `Product with color ${item.color} not found`,
-                    ),
-                );
-              const pSize = pColor.sizes.find(size => size.size === item.size);
-              if (!pSize || !pSize.stock)
-                return throwError(
-                  () =>
-                    new BadRequestException(
-                      `Product with size ${item.size} not found or the quantity is not available`,
-                    ),
-                );
-
-              if (!cart) {
-                // Ensure quantity not more quantity in the stock
-                item.quantity = Math.min(pSize.stock, item.quantity);
-                return this.create({ user: userId, items: [item] });
-              }
-
-              // Check if item added to cart previous
-              const currItem = this.findItem(item, cart);
-              if (currItem) {
-                const newQuantity = currItem.item.quantity + item.quantity;
-                currItem.item.quantity = Math.min(newQuantity, item.quantity);
-                cart[currItem.index] = currItem.item;
-              } else {
-                item.quantity = Math.min(pSize.stock, item.quantity);
-                cart.items.push(item);
-              }
-              return this.update(String(cart._id), cart);
-            }),
-          );
-        }),
+  /* =====================
+     GET OR CREATE CART
+  ====================== */
+  getOrCreateCart(userId: string): Observable<Cart> {
+    return from(this.cartModel.findOne({ userId }).exec()).pipe(
+      mergeMap(cart =>
+        cart ? of(cart) : from(this.cartModel.create({ userId, items: [] })),
       ),
     );
   }
 
-  findItem(item: Item, cart: Cart): { item: Item; index: number } | null {
-    const index = cart.items.findIndex(
-      it => it.color === item.color && it.product === item.product,
+  /* =====================
+     VIEW CART (ACTIVE ITEMS)
+  ====================== */
+  getMyCart(userId: string) {
+    return from(
+      this.cartModel
+        .findOne({ userId })
+        .populate({
+          path: 'items.variantId',
+          match: { isActive: true },
+        })
+        .lean()
+        .exec(),
+    ).pipe(
+      map(cart => {
+        if (!cart) return null;
+        return {
+          ...cart,
+          items: cart.items.filter(i => !i.isCheckedOut),
+        };
+      }),
     );
-    // compared item
-    return index !== -1 ? { item: cart.items[index], index } : null;
+  }
+
+  /* =====================
+     ADD ITEM
+  ====================== */
+  addItem(
+    userId: string,
+    variantId: string,
+    quantity: number,
+  ): Observable<Cart> {
+    return this.getOrCreateCart(userId).pipe(
+      mergeMap(cart =>
+        from(this.variantModel.findById(variantId).exec()).pipe(
+          mergeMap(variant => {
+            if (!variant || !variant.isActive) {
+              return throwError(
+                () => new BadRequestException('Variant not found'),
+              );
+            }
+
+            if (variant.stock < quantity) {
+              return throwError(
+                () =>
+                  new BadRequestException('Requested quantity exceeds stock'),
+              );
+            }
+
+            const existing = cart.items.find(
+              i => i.variantId.toString() === variantId && !i.isCheckedOut,
+            );
+
+            if (existing) {
+              existing.quantity = Math.min(
+                existing.quantity + quantity,
+                variant.stock,
+              );
+            } else {
+              cart.items.push({
+                variantId: new Types.ObjectId(variantId),
+                quantity,
+                createdAt: new Date(),
+                isCheckedOut: false,
+              } as any);
+            }
+
+            return from(cart.save());
+          }),
+        ),
+      ),
+    );
+  }
+
+  /* =====================
+     UPDATE ITEM QUANTITY
+  ====================== */
+  updateItem(userId: string, itemId: string, quantity: number) {
+    return this.getOrCreateCart(userId).pipe(
+      mergeMap(cart => {
+        const item = cart.items.id(itemId);
+        if (!item || item.isCheckedOut) {
+          return throwError(
+            () => new BadRequestException('Cart item not found'),
+          );
+        }
+        item.quantity = quantity;
+        return from(cart.save());
+      }),
+    );
+  }
+
+  /* =====================
+     REMOVE ITEM
+  ====================== */
+  removeItem(userId: string, itemId: string) {
+    return this.getOrCreateCart(userId).pipe(
+      mergeMap(cart => {
+        const item = cart.items.id(itemId);
+        if (!item)
+          return throwError(
+            () => new BadRequestException('Cart item not found'),
+          );
+        item.deleteOne();
+        return from(cart.save());
+      }),
+    );
   }
 }

@@ -1,76 +1,143 @@
-import { Injectable } from '@nestjs/common';
-import { CreateOrderDto } from './dto/create-order.dto';
-import { UpdateOrderDto } from './dto/update-order.dto';
-import { forkJoin, from, map, Observable } from 'rxjs';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Order } from 'src/schemas/order.schema';
-import { Model } from 'mongoose';
-import { PaginationResponse } from 'src/types/response';
-import { prettyObject } from 'src/types/common';
+import { Model, Types } from 'mongoose';
+import { from, mergeMap, map, throwError } from 'rxjs';
+import { Order, OrderStatus } from 'src/schemas/order.schema';
+import { Cart } from 'src/schemas/cart.schema';
+import { ProductVariant } from 'src/schemas/product-variant.schema';
+import { Payment, PaymentStatus } from 'src/schemas/payment.schema';
+import { CreateOrderDto } from './dto/create-order.dto';
 
 @Injectable()
 export class OrderService {
-  constructor(@InjectModel(Order.name) private orderModel: Model<Order>) {}
+  constructor(
+    @InjectModel(Order.name) private orderModel: Model<Order>,
+    @InjectModel(Cart.name) private cartModel: Model<Cart>,
+    @InjectModel(ProductVariant.name)
+    private variantModel: Model<ProductVariant>,
+    @InjectModel(Payment.name)
+    private paymentModel: Model<Payment>,
+  ) {}
 
-  create(createOrderDto: CreateOrderDto): Observable<Order> {
-    const created = new this.orderModel(createOrderDto);
-    return from(created.save());
-  }
+  /* ======================
+     CHECKOUT
+  ====================== */
+  checkout(userId: string, dto: CreateOrderDto) {
+    return from(this.cartModel.findOne({ userId }).exec()).pipe(
+      mergeMap(cart => {
+        if (!cart || cart.items.length === 0) {
+          return throwError(() => new BadRequestException('Cart is empty'));
+        }
 
-  findAll() {
-    return `This action returns all order`;
-  }
+        const activeItems = cart.items.filter(i => !i.isCheckedOut);
+        if (!activeItems.length) {
+          return throwError(() => new BadRequestException('No active items'));
+        }
 
-  findOne(id: number) {
-    return `This action returns a #${id} order`;
-  }
+        return from(
+          this.variantModel
+            .find({
+              _id: { $in: activeItems.map(i => i.variantId) },
+            })
+            .exec(),
+        ).pipe(
+          mergeMap(variants => {
+            // Validate stock
+            for (const item of activeItems) {
+              const variant = variants.find(
+                v =>
+                  (v._id as Types.ObjectId).toString() ===
+                  item.variantId.toString(),
+              );
+              if (!variant || variant.stock < item.quantity) {
+                return throwError(
+                  () => new BadRequestException('Variant out of stock'),
+                );
+              }
+            }
 
-  findByFilter(
-    page: number = 1,
-    pageSize: number = 10,
-    options?: Record<string, any>,
-  ): Observable<PaginationResponse<Order>> {
-    page = !page ? 1 : page;
-    pageSize = !pageSize ? 10 : pageSize;
-    const skip = (page - 1) * pageSize;
-    const filter = options ? prettyObject(options) : {};
-    return forkJoin({
-      total: from(this.orderModel.countDocuments(filter)),
-      items: from(
-        this.orderModel
-          .find(filter)
-          .populate('user')
-          .skip(skip)
-          .limit(pageSize)
-          .lean()
-          .exec(),
-      ),
-    }).pipe(
-      map(({ total, items }) => ({
-        items,
-        page,
-        pageSize,
-        total,
-        totalPage: Math.ceil(total / pageSize),
-      })),
+            // SNAPSHOT order items
+            const orderItems = activeItems.map(item => {
+              const v = variants.find(
+                x =>
+                  (v._id as Types.ObjectId).toString() ===
+                  item.variantId.toString(),
+              )!;
+              return {
+                productId: v.productId,
+                variantId: v._id,
+                productTitle: v.productTitle,
+                sku: v.sku,
+                color: v.color,
+                size: v.size,
+                price: v.price,
+                quantity: item.quantity,
+              };
+            });
+
+            const subtotal = orderItems.reduce(
+              (sum, i) => sum + i.price * i.quantity,
+              0,
+            );
+            const shippingFee = 0; // TODO config
+            const totalPrice = subtotal + shippingFee;
+
+            return from(
+              this.orderModel.create({
+                userId,
+                items: orderItems,
+                subtotal,
+                shippingFee,
+                totalPrice,
+                address: dto.address,
+                phone: dto.phone,
+                status: OrderStatus.PENDING,
+                statusTimestamps: { pendingAt: new Date() },
+              }),
+            ).pipe(
+              mergeMap(order =>
+                // Create Payment
+                from(
+                  this.paymentModel.create({
+                    orderId: order._id,
+                    userId,
+                    amount: totalPrice,
+                    method: dto.paymentMethod,
+                    status: PaymentStatus.PENDING,
+                  }),
+                ).pipe(
+                  mergeMap(() => {
+                    // Mark cart items checked out
+                    activeItems.forEach(i => (i.isCheckedOut = true));
+                    return from(cart.save()).pipe(map(() => order));
+                  }),
+                ),
+              ),
+            );
+          }),
+        );
+      }),
     );
   }
 
-  findByUserId(userId: string) {
-    return from(
-      this.orderModel
-        .find({ user: userId })
-        .populate('items.product')
-        .lean()
-        .exec(),
-    );
+  /* ======================
+     QUERY
+  ====================== */
+  findByUser(userId: string) {
+    return from(this.orderModel.find({ userId }).lean().exec());
   }
 
-  update(id: string, updateOrderDto: UpdateOrderDto) {
-    return from(this.orderModel.findByIdAndUpdate(id, updateOrderDto).lean());
+  findOne(id: string) {
+    return from(this.orderModel.findById(id).lean().exec());
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} order`;
+  updateStatus(id: string, dto: { status?: OrderStatus }) {
+    if (!dto.status) return null;
+    const update: any = { status: dto.status };
+
+    // set timestamp
+    update[`statusTimestamps.${dto.status}At`] = new Date();
+
+    return from(this.orderModel.findByIdAndUpdate(id, update, { new: true }));
   }
 }

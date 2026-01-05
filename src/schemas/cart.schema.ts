@@ -1,30 +1,41 @@
-import mongoose, { HydratedDocument, Document } from 'mongoose';
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
-import { Item } from './item.schema';
+import mongoose, { Document, Types } from 'mongoose';
+import { User } from './user.schema';
+import { ProductVariant } from './product-variant.schema';
 
-export type CategoryDocument = HydratedDocument<Cart>;
+@Schema({ _id: true })
+export class CartItem {
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: ProductVariant.name,
+    required: true,
+  })
+  variantId: mongoose.Types.ObjectId;
 
-@Schema({ timestamps: true })
-export class Cart extends Document {
-  @Prop({ type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true })
-  user: mongoose.Types.ObjectId;
+  @Prop({ required: true, min: 1 })
+  quantity: number;
 
-  @Prop([
-    {
-      product: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true,
-      },
-      size: { type: String, required: true },
-      color: { type: String, required: true },
-      quantity: { type: Number, default: 1 },
-    },
-  ])
-  items: Item[];
+  @Prop({ default: Date.now })
+  createdAt: Date;
 
   @Prop({ default: false })
   isCheckedOut: boolean;
+}
+
+export const CartItemSchema = SchemaFactory.createForClass(CartItem);
+
+@Schema({ timestamps: true })
+export class Cart extends Document {
+  @Prop({
+    type: mongoose.Schema.Types.ObjectId,
+    ref: User.name,
+    required: true,
+    unique: true,
+  })
+  userId: mongoose.Types.ObjectId;
+
+  @Prop({ type: [CartItemSchema], default: [] })
+  items: Types.DocumentArray<CartItem>;
 }
 
 export const CartSchema = SchemaFactory.createForClass(Cart);

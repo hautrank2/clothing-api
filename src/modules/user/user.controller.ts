@@ -51,21 +51,6 @@ export class UserController {
     );
   }
 
-  @Post('/addItem/:userId')
-  addItem(
-    @Body() item: Item,
-    @Param('userId') userId: string,
-  ): Observable<Cart | null> {
-    return this.userService.findOne(userId).pipe(
-      mergeMap((user: User | null) => {
-        if (!user) {
-          return throwError(() => new NotFoundException('User not found'));
-        }
-        return this.cartService.addItem(item, userId);
-      }),
-    );
-  }
-
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
     const saltOrRounds = 10;
@@ -109,18 +94,6 @@ export class UserController {
   @Get('filter')
   findByFilter(@Query() query: { [key: string]: string }) {
     return this.userService.findOneByQuery(query);
-  }
-
-  @Get('/cart/:id')
-  findCart(@Param('id') id: string) {
-    return this.cartService.findByUserId(id).pipe(
-      mergeMap(cart => {
-        if (!cart) {
-          return throwError(() => new BadRequestException('Cart not found'));
-        }
-        return of(cart);
-      }),
-    );
   }
 
   @Get('/orders/:id')
