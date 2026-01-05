@@ -23,7 +23,12 @@ export class CartController {
 
   @Post('items')
   addItem(@Req() req: any, @Body() dto: AddCartItemDto) {
-    return this.cartService.addItem(req.user.id, dto.variantId, dto.quantity);
+    return this.cartService.addItem(
+      req.user.id,
+      dto.variantId,
+      dto.size,
+      dto.quantity,
+    );
   }
 
   @Patch('items/:itemId')

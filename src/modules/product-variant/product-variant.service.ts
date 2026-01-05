@@ -1,11 +1,25 @@
 import { Injectable } from '@nestjs/common';
 import { CreateProductVariantDto } from './dto/create-product-variant.dto';
 import { UpdateProductVariantDto } from './dto/update-product-variant.dto';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { ProductVariant } from 'src/schemas/product-variant.schema';
+import { Product } from 'src/schemas/product.schema';
+import { from, Observable } from 'rxjs';
 
 @Injectable()
 export class ProductVariantService {
-  create(createProductVariantDto: CreateProductVariantDto) {
-    return 'This action adds a new productVariant';
+  constructor(
+    @InjectModel(ProductVariantService.name)
+    private prodVarModel: Model<ProductVariant>,
+    @InjectModel(Product.name) private productModel: Model<Product>,
+  ) {}
+
+  create(
+    createProductVariantDto: CreateProductVariantDto,
+  ): Observable<ProductVariant> {
+    const prodVar = new this.prodVarModel(createProductVariantDto);
+    return from(prodVar.save());
   }
 
   findAll() {
@@ -22,5 +36,10 @@ export class ProductVariantService {
 
   remove(id: number) {
     return `This action removes a #${id} productVariant`;
+  }
+
+  findByProductId(productId: string): Observable<ProductVariant[]> {
+    const prodVars = this.prodVarModel.find({ productId }).lean().exec();
+    return from(prodVars);
   }
 }

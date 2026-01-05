@@ -2,7 +2,10 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Cart } from 'src/schemas/cart.schema';
-import { ProductVariant } from 'src/schemas/product-variant.schema';
+import {
+  ProductSizeType,
+  ProductVariant,
+} from 'src/schemas/product-variant.schema';
 import { from, mergeMap, map, Observable, of, throwError } from 'rxjs';
 
 @Injectable()
@@ -54,6 +57,7 @@ export class CartService {
   addItem(
     userId: string,
     variantId: string,
+    size: ProductSizeType,
     quantity: number,
   ): Observable<Cart> {
     return this.getOrCreateCart(userId).pipe(
@@ -66,7 +70,15 @@ export class CartService {
               );
             }
 
-            if (variant.stock < quantity) {
+            const sizeVariant = variant.sizes.find(s => s.size === size);
+
+            if (!sizeVariant || !sizeVariant.isActive) {
+              return throwError(
+                () => new BadRequestException('Size not available'),
+              );
+            }
+
+            if (sizeVariant.stock < quantity) {
               return throwError(
                 () =>
                   new BadRequestException('Requested quantity exceeds stock'),
@@ -74,17 +86,21 @@ export class CartService {
             }
 
             const existing = cart.items.find(
-              i => i.variantId.toString() === variantId && !i.isCheckedOut,
+              i =>
+                i.variantId.toString() === variantId &&
+                i.size === size &&
+                !i.isCheckedOut,
             );
 
             if (existing) {
               existing.quantity = Math.min(
                 existing.quantity + quantity,
-                variant.stock,
+                sizeVariant.stock,
               );
             } else {
               cart.items.push({
                 variantId: new Types.ObjectId(variantId),
+                size,
                 quantity,
                 createdAt: new Date(),
                 isCheckedOut: false,
@@ -101,7 +117,11 @@ export class CartService {
   /* =====================
      UPDATE ITEM QUANTITY
   ====================== */
-  updateItem(userId: string, itemId: string, quantity: number) {
+  updateItem(
+    userId: string,
+    itemId: string,
+    quantity: number,
+  ): Observable<Cart> {
     return this.getOrCreateCart(userId).pipe(
       mergeMap(cart => {
         const item = cart.items.id(itemId);
@@ -110,8 +130,31 @@ export class CartService {
             () => new BadRequestException('Cart item not found'),
           );
         }
-        item.quantity = quantity;
-        return from(cart.save());
+
+        return from(this.variantModel.findById(item.variantId).exec()).pipe(
+          mergeMap(variant => {
+            if (!variant)
+              return throwError(
+                () => new BadRequestException('Variant not found'),
+              );
+
+            const sizeVariant = variant.sizes.find(s => s.size === item.size);
+
+            if (!sizeVariant)
+              return throwError(
+                () => new BadRequestException('Size not found'),
+              );
+
+            if (quantity > sizeVariant.stock)
+              return throwError(
+                () =>
+                  new BadRequestException('Requested quantity exceeds stock'),
+              );
+
+            item.quantity = quantity;
+            return from(cart.save());
+          }),
+        );
       }),
     );
   }
@@ -119,7 +162,7 @@ export class CartService {
   /* =====================
      REMOVE ITEM
   ====================== */
-  removeItem(userId: string, itemId: string) {
+  removeItem(userId: string, itemId: string): Observable<Cart> {
     return this.getOrCreateCart(userId).pipe(
       mergeMap(cart => {
         const item = cart.items.id(itemId);

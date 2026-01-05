@@ -1,7 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import mongoose, { Document, Types } from 'mongoose';
 import { User } from './user.schema';
-import { ProductVariant } from './product-variant.schema';
+import { ProductSizeEnum, ProductVariant } from './product-variant.schema';
 
 @Schema({ _id: true })
 export class CartItem {
@@ -11,6 +11,12 @@ export class CartItem {
     required: true,
   })
   variantId: mongoose.Types.ObjectId;
+
+  @Prop({
+    required: true,
+    enum: Object.values(ProductSizeEnum),
+  })
+  size: ProductSizeEnum;
 
   @Prop({ required: true, min: 1 })
   quantity: number;

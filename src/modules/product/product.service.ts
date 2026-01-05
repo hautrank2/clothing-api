@@ -1,6 +1,5 @@
 import { Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
-import { UpdateProductDto } from './dto/update-product.dto';
 import mongoose, { FilterQuery, Model } from 'mongoose';
 import { Product } from 'src/schemas/product.schema';
 import { InjectModel } from '@nestjs/mongoose';
@@ -9,6 +8,7 @@ import { PaginationResponse } from 'src/types/response';
 import { prettyObject } from 'src/types/common';
 import { Category } from 'src/schemas/category.schema';
 import { CategoryService } from '../category/category.service';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @Injectable()
 export class ProductService {

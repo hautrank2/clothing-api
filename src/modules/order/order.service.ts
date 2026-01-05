@@ -38,39 +38,57 @@ export class OrderService {
           this.variantModel
             .find({
               _id: { $in: activeItems.map(i => i.variantId) },
+              isActive: true,
             })
             .exec(),
         ).pipe(
           mergeMap(variants => {
-            // Validate stock
+            /* ======================
+               VALIDATE STOCK BY SIZE
+            ====================== */
             for (const item of activeItems) {
               const variant = variants.find(
                 v =>
                   (v._id as Types.ObjectId).toString() ===
                   item.variantId.toString(),
               );
-              if (!variant || variant.stock < item.quantity) {
+
+              if (!variant) {
                 return throwError(
-                  () => new BadRequestException('Variant out of stock'),
+                  () => new BadRequestException('Variant not found'),
+                );
+              }
+
+              const sizeVariant = variant.sizes.find(s => s.size === item.size);
+
+              if (!sizeVariant || sizeVariant.stock < item.quantity) {
+                return throwError(
+                  () => new BadRequestException('Product out of stock'),
                 );
               }
             }
 
-            // SNAPSHOT order items
+            /* ======================
+               SNAPSHOT ORDER ITEMS
+            ====================== */
             const orderItems = activeItems.map(item => {
-              const v = variants.find(
-                x =>
+              const variant = variants.find(
+                v =>
                   (v._id as Types.ObjectId).toString() ===
                   item.variantId.toString(),
               )!;
+
+              const sizeVariant = variant.sizes.find(
+                s => s.size === item.size,
+              )!;
+
               return {
-                productId: v.productId,
-                variantId: v._id,
-                productTitle: v.productTitle,
-                sku: v.sku,
-                color: v.color,
-                size: v.size,
-                price: v.price,
+                productId: variant.productId,
+                variantId: variant._id,
+                color: variant.color,
+                size: item.size,
+                price: sizeVariant.price,
+                sku: sizeVariant.sku,
                 quantity: item.quantity,
               };
             });
@@ -79,6 +97,7 @@ export class OrderService {
               (sum, i) => sum + i.price * i.quantity,
               0,
             );
+
             const shippingFee = 0; // TODO config
             const totalPrice = subtotal + shippingFee;
 
@@ -96,7 +115,6 @@ export class OrderService {
               }),
             ).pipe(
               mergeMap(order =>
-                // Create Payment
                 from(
                   this.paymentModel.create({
                     orderId: order._id,
@@ -107,7 +125,6 @@ export class OrderService {
                   }),
                 ).pipe(
                   mergeMap(() => {
-                    // Mark cart items checked out
                     activeItems.forEach(i => (i.isCheckedOut = true));
                     return from(cart.save()).pipe(map(() => order));
                   }),
@@ -133,9 +150,8 @@ export class OrderService {
 
   updateStatus(id: string, dto: { status?: OrderStatus }) {
     if (!dto.status) return null;
-    const update: any = { status: dto.status };
 
-    // set timestamp
+    const update: any = { status: dto.status };
     update[`statusTimestamps.${dto.status}At`] = new Date();
 
     return from(this.orderModel.findByIdAndUpdate(id, update, { new: true }));

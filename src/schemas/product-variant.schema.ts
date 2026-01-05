@@ -28,9 +28,30 @@ export enum ProductSizeEnum {
   XXL = 'XXL',
 }
 
+export type ProductSizeType = ProductSizeEnum | number;
 /* =======================
    PRODUCT VARIANT
 ======================= */
+export class ProductSizeVariant {
+  @Prop({
+    type: mongoose.Schema.Types.Mixed,
+    required: true,
+    index: true,
+  })
+  size: ProductSizeType;
+
+  @Prop({ required: true, min: 0 })
+  price: number;
+
+  @Prop({ required: true, min: 0 })
+  stock: number;
+
+  @Prop({ required: true })
+  sku: string;
+
+  @Prop({ default: true })
+  isActive: boolean;
+}
 
 @Schema({ timestamps: true })
 export class ProductVariant extends Document {
@@ -49,19 +70,11 @@ export class ProductVariant extends Document {
   color: ProductColorEnum;
 
   @Prop({
+    type: [ProductSizeVariant],
     required: true,
-    enum: Object.values(ProductSizeEnum),
+    default: [],
   })
-  size: ProductSizeEnum | number;
-
-  @Prop({ required: true, min: 0 })
-  price: number;
-
-  @Prop({ required: true, min: 0 })
-  stock: number;
-
-  @Prop({ required: true, unique: true })
-  sku: string;
+  sizes: ProductSizeVariant[];
 
   @Prop({ type: [String], default: [] })
   imgUrls: string[];
@@ -74,7 +87,4 @@ export const ProductVariantSchema =
   SchemaFactory.createForClass(ProductVariant);
 
 // productId color and size must be unique
-ProductVariantSchema.index(
-  { productId: 1, color: 1, size: 1 },
-  { unique: true },
-);
+ProductVariantSchema.index({ productId: 1, color: 1 }, { unique: true });

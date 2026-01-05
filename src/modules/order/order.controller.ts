@@ -7,25 +7,25 @@ import { UpdateOrderDto } from './dto/update-order.dto';
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
-  // 🧾 CHECKOUT
+  // Checkout
   @Post()
   checkout(@Req() req: any, @Body() dto: CreateOrderDto) {
     return this.orderService.checkout(req.user.id, dto);
   }
 
-  // 👤 Order của user
+  // User's order
   @Get('me')
   getMyOrders(@Req() req: any) {
     return this.orderService.findByUser(req.user.id);
   }
 
-  // 📦 Chi tiết order
+  // 📦Order detail
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.orderService.findOne(id);
   }
 
-  // 🔧 ADMIN cập nhật status
+  // 🔧 Admin update status
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateOrderDto) {
     return this.orderService.updateStatus(id, dto);

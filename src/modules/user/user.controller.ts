@@ -9,34 +9,18 @@ import {
   BadRequestException,
   InternalServerErrorException,
   Query,
-  NotFoundException,
   Put,
 } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto, UserWithEmailDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import * as bcrypt from 'bcrypt';
-import {
-  catchError,
-  mergeMap,
-  Observable,
-  of,
-  switchMap,
-  throwError,
-} from 'rxjs';
-import { Item } from 'src/schemas/item.schema';
-import { CartService } from '../cart/cart.service';
-import { Address, User } from 'src/schemas/user.schema';
-import { Cart } from 'src/schemas/cart.schema';
-import { OrderService } from '../order/order.service';
+import { catchError, mergeMap, switchMap, throwError } from 'rxjs';
+import { Address } from 'src/schemas/user.schema';
 
 @Controller('user')
 export class UserController {
-  constructor(
-    private readonly userService: UserService,
-    private readonly cartService: CartService,
-    private readonly orderService: OrderService,
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   @Post('createWithEmail')
   createWithEmail(@Body() dto: UserWithEmailDto) {
@@ -94,11 +78,6 @@ export class UserController {
   @Get('filter')
   findByFilter(@Query() query: { [key: string]: string }) {
     return this.userService.findOneByQuery(query);
-  }
-
-  @Get('/orders/:id')
-  findCartItems(@Param('id') id: string) {
-    return this.orderService.findByUserId(id);
   }
 
   @Put('/:id/address')

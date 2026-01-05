@@ -17,9 +17,8 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { catchError, map, mergeMap, of, throwError } from 'rxjs';
 import { CategoryService } from '../category/category.service';
 import { Category } from 'src/schemas/category.schema';
-import { UploadService } from 'src/services/upload.service';
 import { AdminGuard } from 'src/guards/admin.guard';
-import { UpdateProductVariantDto } from './dto/update-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @UseGuards(AdminGuard)
 @Controller('product')
@@ -27,7 +26,6 @@ export class ProductController {
   constructor(
     private readonly productService: ProductService,
     private categorService: CategoryService,
-    private uploadService: UploadService,
   ) {}
 
   @Post()
@@ -94,10 +92,7 @@ export class ProductController {
   }
 
   @Patch(':id')
-  update(
-    @Param('id') id: string,
-    @Body() updateProductDto: UpdateProductVariantDto,
-  ) {
+  update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
     return this.productService.update(id, updateProductDto);
   }
 
