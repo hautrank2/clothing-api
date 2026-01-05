@@ -9,11 +9,14 @@ import { prettyObject } from 'src/types/common';
 import { Category } from 'src/schemas/category.schema';
 import { CategoryService } from '../category/category.service';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ProductVariant } from 'src/schemas/product-variant.schema';
 
 @Injectable()
 export class ProductService {
   constructor(
     @InjectModel(Product.name) private productModel: Model<Product>,
+    @InjectModel(ProductVariant.name)
+    private prodVarModel: Model<ProductVariant>,
     private categoryService: CategoryService,
   ) {}
 

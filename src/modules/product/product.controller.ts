@@ -19,13 +19,16 @@ import { CategoryService } from '../category/category.service';
 import { Category } from 'src/schemas/category.schema';
 import { AdminGuard } from 'src/guards/admin.guard';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { ProductVariantService } from '../product-variant/product-variant.service';
+import { CreateProductVariantDto } from '../product-variant/dto/create-product-variant.dto';
 
 @UseGuards(AdminGuard)
 @Controller('product')
 export class ProductController {
   constructor(
     private readonly productService: ProductService,
-    private categorService: CategoryService,
+    private readonly categorService: CategoryService,
+    private readonly prodVarService: ProductVariantService,
   ) {}
 
   @Post()
@@ -75,6 +78,33 @@ export class ProductController {
           // eslint-disable-next-line @typescript-eslint/no-base-to-string
           categoryId: cate._id.toString(),
         });
+      }),
+    );
+  }
+
+  @Get(':id/variants')
+  findVariants(@Param('id') id: string) {
+    return this.productService.findOne(id).pipe(
+      mergeMap(prod => {
+        if (!prod) {
+          return throwError(() => new NotFoundException('Product not found'));
+        }
+        return this.prodVarService.findByProductId(id);
+      }),
+    );
+  }
+
+  @Post(':id/variants')
+  createVariants(
+    @Param('id') id: string,
+    @Body() productVariants: CreateProductVariantDto[],
+  ) {
+    return this.productService.findOne(id).pipe(
+      mergeMap(prod => {
+        if (!prod) {
+          return throwError(() => new NotFoundException('Product not found'));
+        }
+        return this.prodVarService.findByProductId(id);
       }),
     );
   }

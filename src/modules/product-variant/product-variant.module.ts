@@ -6,14 +6,23 @@ import {
   ProductVariant,
   ProductVariantSchema,
 } from 'src/schemas/product-variant.schema';
+import { Product, ProductSchema } from 'src/schemas/product.schema';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: ProductVariant.name, schema: ProductVariantSchema },
+      { name: Product.name, schema: ProductSchema },
     ]),
   ],
   controllers: [ProductVariantController],
   providers: [ProductVariantService],
+  exports: [
+    ProductVariantService,
+    MongooseModule.forFeature([
+      { name: ProductVariant.name, schema: ProductVariantSchema },
+      { name: Product.name, schema: ProductSchema },
+    ]),
+  ],
 })
 export class ProductVariantModule {}

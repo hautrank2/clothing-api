@@ -5,12 +5,12 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ProductVariant } from 'src/schemas/product-variant.schema';
 import { Product } from 'src/schemas/product.schema';
-import { from, Observable } from 'rxjs';
+import { from, map, Observable } from 'rxjs';
 
 @Injectable()
 export class ProductVariantService {
   constructor(
-    @InjectModel(ProductVariantService.name)
+    @InjectModel(ProductVariant.name)
     private prodVarModel: Model<ProductVariant>,
     @InjectModel(Product.name) private productModel: Model<Product>,
   ) {}
@@ -20,6 +20,14 @@ export class ProductVariantService {
   ): Observable<ProductVariant> {
     const prodVar = new this.prodVarModel(createProductVariantDto);
     return from(prodVar.save());
+  }
+
+  createMultiple(
+    createProductVariantDtos: CreateProductVariantDto[],
+  ): Observable<ProductVariant[]> {
+    return from(this.prodVarModel.insertMany(createProductVariantDtos)).pipe(
+      map(docs => docs.map(doc => doc.toObject())),
+    );
   }
 
   findAll() {

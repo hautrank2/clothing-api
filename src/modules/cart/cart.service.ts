@@ -104,7 +104,7 @@ export class CartService {
                 quantity,
                 createdAt: new Date(),
                 isCheckedOut: false,
-              } as any);
+              });
             }
 
             return from(cart.save());

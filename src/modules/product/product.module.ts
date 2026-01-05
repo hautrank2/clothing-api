@@ -6,6 +6,7 @@ import { Product, ProductSchema } from 'src/schemas/product.schema';
 import { UploadService } from 'src/services/upload.service';
 import { CategoryService } from '../category/category.service';
 import { Category, CategorySchema } from 'src/schemas/category.schema';
+import { ProductVariantModule } from '../product-variant/product-variant.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { Category, CategorySchema } from 'src/schemas/category.schema';
     MongooseModule.forFeature([
       { name: Category.name, schema: CategorySchema },
     ]),
+    ProductVariantModule,
   ],
   controllers: [ProductController],
   providers: [ProductService, UploadService, CategoryService],
