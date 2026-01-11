@@ -26,8 +26,8 @@ export class ProductService {
   }
 
   findAll(
-    page: number,
-    pageSize: number,
+    page: number = 1,
+    pageSize: number = 10,
     options?: Record<string, any>,
   ): Observable<PaginationResponse<Product>> {
     const skip = (page - 1) * pageSize;

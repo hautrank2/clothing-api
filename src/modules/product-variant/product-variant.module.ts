@@ -7,6 +7,7 @@ import {
   ProductVariantSchema,
 } from 'src/schemas/product-variant.schema';
 import { Product, ProductSchema } from 'src/schemas/product.schema';
+import { UploadService } from 'src/services/upload.service';
 
 @Module({
   imports: [
@@ -16,7 +17,7 @@ import { Product, ProductSchema } from 'src/schemas/product.schema';
     ]),
   ],
   controllers: [ProductVariantController],
-  providers: [ProductVariantService],
+  providers: [ProductVariantService, UploadService],
   exports: [
     ProductVariantService,
     MongooseModule.forFeature([

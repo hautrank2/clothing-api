@@ -6,18 +6,25 @@ import {
   Patch,
   Param,
   Delete,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { ProductVariantService } from './product-variant.service';
 import { CreateProductVariantDto } from './dto/create-product-variant.dto';
 import { UpdateProductVariantDto } from './dto/update-product-variant.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('product-variant')
 export class ProductVariantController {
   constructor(private readonly productVariantService: ProductVariantService) {}
 
+  @UseInterceptors(FileInterceptor('file'))
   @Post()
-  create(@Body() createProductVariantDto: CreateProductVariantDto) {
-    return this.productVariantService.create(createProductVariantDto);
+  create(
+    @Body() createProductVariantDto: CreateProductVariantDto,
+    @UploadedFile() files: Array<Express.Multer.File>,
+  ) {
+    return this.productVariantService.create(createProductVariantDto, files);
   }
 
   @Get()

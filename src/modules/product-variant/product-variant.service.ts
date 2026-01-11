@@ -5,7 +5,16 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { ProductVariant } from 'src/schemas/product-variant.schema';
 import { Product } from 'src/schemas/product.schema';
-import { from, map, Observable } from 'rxjs';
+import {
+  catchError,
+  forkJoin,
+  from,
+  map,
+  Observable,
+  switchMap,
+  throwError,
+} from 'rxjs';
+import { UploadService } from 'src/services/upload.service';
 
 @Injectable()
 export class ProductVariantService {
@@ -13,13 +22,46 @@ export class ProductVariantService {
     @InjectModel(ProductVariant.name)
     private prodVarModel: Model<ProductVariant>,
     @InjectModel(Product.name) private productModel: Model<Product>,
+    private uploadService: UploadService,
   ) {}
 
   create(
     createProductVariantDto: CreateProductVariantDto,
+    files: Array<Express.Multer.File>,
   ): Observable<ProductVariant> {
-    const prodVar = new this.prodVarModel(createProductVariantDto);
-    return from(prodVar.save());
+    if (!files || files.length === 0) {
+      const prodVar = new this.prodVarModel({
+        ...createProductVariantDto,
+        imgUrls: [],
+      });
+      return from(prodVar.save());
+    }
+
+    const upload$ = files.map(file =>
+      this.uploadService.uploadFile(
+        file,
+        ['clothes', 'product'],
+        file.filename,
+      ),
+    );
+
+    return forkJoin(upload$).pipe(
+      switchMap((imgUrls: string[]) => {
+        const prodVar = new this.prodVarModel({
+          ...createProductVariantDto,
+          imgUrls,
+        });
+
+        return from(prodVar.save()).pipe(
+          catchError(err => {
+            // 🔥 rollback image if fail
+            return forkJoin(
+              imgUrls.map(url => this.uploadService.removeFile(url)),
+            ).pipe(switchMap(() => throwError(() => err as string)));
+          }),
+        );
+      }),
+    );
   }
 
   createMultiple(

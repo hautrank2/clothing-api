@@ -11,6 +11,8 @@ import {
   InternalServerErrorException,
   NotFoundException,
   UseGuards,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -21,6 +23,7 @@ import { AdminGuard } from 'src/guards/admin.guard';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductVariantService } from '../product-variant/product-variant.service';
 import { CreateProductVariantDto } from '../product-variant/dto/create-product-variant.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @UseGuards(AdminGuard)
 @Controller('product')
@@ -95,16 +98,19 @@ export class ProductController {
   }
 
   @Post(':id/variants')
-  createVariants(
+  @UseInterceptors(FileInterceptor('file'))
+  createVariant(
     @Param('id') id: string,
-    @Body() productVariants: CreateProductVariantDto[],
+    @Body() productVariant: CreateProductVariantDto,
+    @UploadedFile() files: Array<Express.Multer.File>,
   ) {
+    console.log(files);
     return this.productService.findOne(id).pipe(
       mergeMap(prod => {
         if (!prod) {
           return throwError(() => new NotFoundException('Product not found'));
         }
-        return this.prodVarService.findByProductId(id);
+        return this.prodVarService.create(productVariant, files);
       }),
     );
   }
