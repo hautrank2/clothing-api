@@ -19,26 +19,21 @@ import {
 ====================== */
 
 export class UpdateProductSizeVariantDto {
-  @IsOptional()
-  size?: ProductSizeType;
+  size: ProductSizeType;
 
-  @IsOptional()
   @IsNumber()
   @Min(0)
-  price?: number;
+  price: number;
 
-  @IsOptional()
   @IsNumber()
   @Min(0)
-  stock?: number;
+  stock: number;
 
-  @IsOptional()
   @IsString()
-  sku?: string;
+  sku: string;
 
-  @IsOptional()
   @IsBoolean()
-  isActive?: boolean;
+  isActive: boolean;
 }
 
 /* ======================
@@ -46,22 +41,18 @@ export class UpdateProductSizeVariantDto {
 ====================== */
 
 export class UpdateProductVariantDto {
-  @IsOptional()
   @IsEnum(ProductColorEnum)
-  color?: ProductColorEnum;
+  color: ProductColorEnum;
 
-  @IsOptional()
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => UpdateProductSizeVariantDto)
   sizes?: UpdateProductSizeVariantDto[];
 
-  @IsOptional()
   @IsArray()
   @IsString({ each: true })
-  imgUrls?: string[];
+  imgUrls: string[];
 
-  @IsOptional()
   @IsBoolean()
-  isActive?: boolean;
+  isActive: boolean;
 }

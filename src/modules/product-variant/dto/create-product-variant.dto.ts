@@ -53,14 +53,9 @@ export class CreateProductVariantDto {
   color: ProductColorEnum;
 
   @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => CreateProductSizeVariantDto)
+  // @ValidateNested({ each: true })
+  // @Type(() => CreateProductSizeVariantDto)
   sizes: CreateProductSizeVariantDto[];
-
-  @IsOptional()
-  @IsArray()
-  @IsString({ each: true })
-  imgUrls?: string[];
 
   @IsOptional()
   @IsBoolean()

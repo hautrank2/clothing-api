@@ -24,6 +24,7 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductVariantService } from '../product-variant/product-variant.service';
 import { CreateProductVariantDto } from '../product-variant/dto/create-product-variant.dto';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ParseJsonFieldPipe } from 'src/pipes/parse-json-field.pipe';
 
 @UseGuards(AdminGuard)
 @Controller('product')
@@ -98,13 +99,13 @@ export class ProductController {
   }
 
   @Post(':id/variants')
-  @UseInterceptors(FileInterceptor('file'))
+  @UseInterceptors(FileInterceptor('files'))
   createVariant(
     @Param('id') id: string,
-    @Body() productVariant: CreateProductVariantDto,
     @UploadedFile() files: Array<Express.Multer.File>,
+    @Body() productVariant: CreateProductVariantDto,
   ) {
-    console.log(files);
+    console.log('File', id, files, productVariant);
     return this.productService.findOne(id).pipe(
       mergeMap(prod => {
         if (!prod) {
