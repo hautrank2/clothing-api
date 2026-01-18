@@ -2,17 +2,19 @@ import {
   IsArray,
   IsBoolean,
   IsEnum,
-  IsOptional,
   IsString,
   ValidateNested,
   IsNumber,
   Min,
+  IsOptional,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { plainToInstance, Transform, Type } from 'class-transformer';
 import {
   ProductColorEnum,
   ProductSizeType,
 } from 'src/schemas/product-variant.schema';
+import { parseJsonArray } from 'src/utils/json';
+import { CreateProductSizeVariantDto } from './create-product-variant.dto';
 
 /* ======================
    SIZE DTO
@@ -44,15 +46,28 @@ export class UpdateProductVariantDto {
   @IsEnum(ProductColorEnum)
   color: ProductColorEnum;
 
+  @Transform(
+    ({ value }) => {
+      const raw = (
+        typeof value === 'string'
+          ? parseJsonArray<CreateProductSizeVariantDto>(value)
+          : value
+      ) as CreateProductSizeVariantDto[];
+      return plainToInstance(CreateProductSizeVariantDto, raw);
+    },
+    { toClassOnly: true },
+  )
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => UpdateProductSizeVariantDto)
-  sizes?: UpdateProductSizeVariantDto[];
+  @Type(() => CreateProductSizeVariantDto)
+  sizes: CreateProductSizeVariantDto[];
 
+  @IsOptional()
   @IsArray()
   @IsString({ each: true })
   imgUrls: string[];
 
+  @IsOptional()
   @IsBoolean()
   isActive: boolean;
 }

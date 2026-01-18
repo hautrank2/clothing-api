@@ -3,10 +3,11 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
 import { InjectModel } from '@nestjs/mongoose';
 import { Category } from 'src/schemas/category.schema';
-import mongoose, { Model } from 'mongoose';
+import { Model } from 'mongoose';
 import { from, map, mergeMap, Observable, of } from 'rxjs';
 import { PaginationResponse } from 'src/types/response';
 
+export type CategoryDto = Category & { parent?: Category | null };
 @Injectable()
 export class CategoryService {
   constructor(
@@ -31,24 +32,10 @@ export class CategoryService {
             .skip(skip)
             .limit(pageSize)
             .populate('parentId')
-            .lean()
             .exec(),
         ).pipe(
-          map((items: Category[]) => ({
-            items: items.map(item => {
-              const parentId = item.parentId as
-                | Category
-                | mongoose.Types.ObjectId
-                | null;
-              return {
-                ...item,
-                parent: item.parentId || null,
-                parentId:
-                  typeof parentId === 'object' && parentId !== null
-                    ? parentId._id
-                    : parentId,
-              };
-            }) as Category[],
+          map(items => ({
+            items,
             page,
             pageSize,
             total,
@@ -71,22 +58,14 @@ export class CategoryService {
     return from(this.categoryModel.findByIdAndDelete(id));
   }
 
-  findByCode(code: string): Observable<Category[] | []> {
+  findByCode(code: string): Observable<CategoryDto[]> {
     return from(
-      this.categoryModel.find({ code }).populate('parentId').lean().exec(),
+      this.categoryModel.find({ code }).populate('parentId').exec(),
     ).pipe(
       map(dt => {
         return dt.map(cate => {
-          const parentId = cate.parentId as Category | string;
-          const parent = parentId || null;
-          return {
-            ...cate,
-            parentId:
-              typeof parentId === 'object' && parentId !== null
-                ? String(parentId._id)
-                : parentId,
-            parent,
-          } as Category;
+          const dto = cate.toObject();
+          return dto;
         });
       }),
     );
@@ -104,22 +83,19 @@ export class CategoryService {
     ).pipe(map(e => !!e));
   }
 
-  findCategoryWithAllChildren(id: string): Observable<Category[]> {
+  findCategoryWithAllChildren(id: string): Observable<CategoryDto[]> {
     return from(
-      this.categoryModel.findById(id).populate('parentId').lean(),
+      this.categoryModel.findById(id).populate('parentId').exec(),
     ).pipe(
-      mergeMap((parent: Category | null) => {
-        if (!parent) {
-          return of([]);
-        }
-        if (parent)
-          return from(
-            this.categoryModel
-              .findOne({ parentId: parent._id })
-              .populate('parentId')
-              .lean(),
-          ).pipe(map(cate => (cate ? [parent, cate] : [parent])));
-        return of([parent]);
+      mergeMap(parent => {
+        if (!parent) return of([]);
+
+        return from(
+          this.categoryModel
+            .findOne({ parentId: parent._id })
+            .populate('parentId')
+            .exec(),
+        ).pipe(map(cate => (cate ? [parent, cate] : [parent])));
       }),
     );
   }

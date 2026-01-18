@@ -1,27 +1,45 @@
+import { plainToInstance, Transform, Type } from 'class-transformer';
 import {
-  IsArray,
   IsBoolean,
   IsEnum,
   IsMongoId,
   IsNotEmpty,
   IsOptional,
   IsString,
-  ValidateNested,
   IsNumber,
   Min,
+  ValidateNested,
+  IsArray,
+  ValidateIf,
 } from 'class-validator';
-import { Type } from 'class-transformer';
 import {
   ProductColorEnum,
+  ProductSizeEnum,
   ProductSizeType,
 } from 'src/schemas/product-variant.schema';
+import { parseJsonArray } from 'src/utils/json';
 
 /* ======================
    SIZE DTO
 ====================== */
 
 export class CreateProductSizeVariantDto {
+  @Transform(({ value }) => {
+    if (
+      typeof value === 'string' &&
+      value.trim() !== '' &&
+      !Number.isNaN(Number(value))
+    ) {
+      return Number(value);
+    }
+    return value as number | string;
+  })
   @IsNotEmpty()
+  @ValidateIf(o => typeof o === 'string')
+  @IsEnum(ProductSizeEnum)
+  @ValidateIf(o => typeof o === 'number')
+  @IsNumber()
+  @Min(0)
   size: ProductSizeType;
 
   @IsNumber()
@@ -52,9 +70,20 @@ export class CreateProductVariantDto {
   @IsEnum(ProductColorEnum)
   color: ProductColorEnum;
 
+  @Transform(
+    ({ value }) => {
+      const raw = (
+        typeof value === 'string'
+          ? parseJsonArray<CreateProductSizeVariantDto>(value)
+          : value
+      ) as CreateProductSizeVariantDto[];
+      return plainToInstance(CreateProductSizeVariantDto, raw);
+    },
+    { toClassOnly: true },
+  )
   @IsArray()
-  // @ValidateNested({ each: true })
-  // @Type(() => CreateProductSizeVariantDto)
+  @ValidateNested({ each: true })
+  @Type(() => CreateProductSizeVariantDto)
   sizes: CreateProductSizeVariantDto[];
 
   @IsOptional()

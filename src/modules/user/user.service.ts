@@ -56,7 +56,7 @@ export class UserService {
     return forkJoin({
       total: from(this.userModel.countDocuments(filter)),
       items: from(
-        this.userModel.find(filter).skip(skip).limit(pageSize).lean().exec(),
+        this.userModel.find(filter).skip(skip).limit(pageSize).exec(),
       ),
     }).pipe(
       map(({ total, items }) => ({
@@ -70,7 +70,7 @@ export class UserService {
   }
 
   findOneByQuery(filter: FilterQuery<User>): Observable<User | null> {
-    return from(this.userModel.findOne(filter).lean().exec()).pipe(
+    return from(this.userModel.findOne(filter).exec()).pipe(
       mergeMap(user => {
         if (!user) {
           return of(null);
@@ -88,11 +88,19 @@ export class UserService {
   }
 
   update(id: string, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+    return from(this.userModel.findByIdAndUpdate(id, updateUserDto));
   }
 
-  remove(id: string) {
-    return from(this.userModel.deleteOne({ _id: id }).exec());
+  remove(id: string): Observable<User> {
+    return from(this.userModel.findByIdAndDelete(id).exec()).pipe(
+      mergeMap(doc => {
+        if (!doc) {
+          return throwError(() => new NotFoundException('User not found'));
+        }
+        // trả về user vừa bị xoá
+        return from([doc.toObject() as User]);
+      }),
+    );
   }
 
   addItem(item: Item, userId: string) {}

@@ -5,7 +5,7 @@ import { UserService } from 'src/modules/user/user.service';
 import * as bcrypt from 'bcrypt';
 import { throwError } from 'rxjs';
 import { JwtService } from '@nestjs/jwt';
-import { JwtPayload } from 'src/types/auth';
+import { prettyObject } from 'src/types/common';
 
 @Injectable()
 export class AuthService {
@@ -16,9 +16,11 @@ export class AuthService {
 
   signin(dto: SigninDto): Observable<{ token: string }> {
     const { password, ...restDto } = dto;
+
     return from(
-      this.userService.findOneByQuery(restDto).pipe(
-        mergeMap(user => {
+      this.userService.findOneByQuery(prettyObject(restDto)).pipe(
+        mergeMap(userRes => {
+          const user = userRes?.toObject();
           if (!user) {
             return throwError(
               new UnauthorizedException(
@@ -26,16 +28,16 @@ export class AuthService {
               ),
             );
           }
-          return from(bcrypt.compare(password, user.password)).pipe(
+          return from(bcrypt.compare(password, userRes?.password ?? '')).pipe(
             mergeMap(isMatch => {
+              console.log('isMatch', isMatch);
               if (!isMatch) {
                 return throwError(
                   new UnauthorizedException('Invalid password'),
                 );
               }
 
-              const payload: JwtPayload = user;
-              return from(this.jwtService.signAsync(payload)).pipe(
+              return from(this.jwtService.signAsync(user)).pipe(
                 map(token => ({ token, user })),
               );
             }),

@@ -34,7 +34,7 @@ export class ProductVariantController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.productVariantService.findOne(+id);
+    return this.productVariantService.findOne(id);
   }
 
   @Patch(':id')
@@ -42,7 +42,7 @@ export class ProductVariantController {
     @Param('id') id: string,
     @Body() updateProductVariantDto: UpdateProductVariantDto,
   ) {
-    return this.productVariantService.update(+id, updateProductVariantDto);
+    return this.productVariantService.update(id, updateProductVariantDto);
   }
 
   @Delete(':id')

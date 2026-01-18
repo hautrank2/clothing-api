@@ -12,7 +12,8 @@ import {
   NotFoundException,
   UseGuards,
   UseInterceptors,
-  UploadedFile,
+  UploadedFiles,
+  Put,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -23,8 +24,8 @@ import { AdminGuard } from 'src/guards/admin.guard';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductVariantService } from '../product-variant/product-variant.service';
 import { CreateProductVariantDto } from '../product-variant/dto/create-product-variant.dto';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { ParseJsonFieldPipe } from 'src/pipes/parse-json-field.pipe';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import { UpdateProductVariantDto } from '../product-variant/dto/update-product-variant.dto';
 
 @UseGuards(AdminGuard)
 @Controller('product')
@@ -99,19 +100,76 @@ export class ProductController {
   }
 
   @Post(':id/variants')
-  @UseInterceptors(FileInterceptor('files'))
+  @UseInterceptors(FilesInterceptor('files'))
   createVariant(
     @Param('id') id: string,
-    @UploadedFile() files: Array<Express.Multer.File>,
+    @UploadedFiles() files: Array<Express.Multer.File>,
     @Body() productVariant: CreateProductVariantDto,
   ) {
-    console.log('File', id, files, productVariant);
     return this.productService.findOne(id).pipe(
       mergeMap(prod => {
         if (!prod) {
           return throwError(() => new NotFoundException('Product not found'));
         }
         return this.prodVarService.create(productVariant, files);
+      }),
+    );
+  }
+
+  @Get(':id/variants/:variantId')
+  getVariant(@Param('id') id: string, @Param('variantId') variantId: string) {
+    return this.productService.findOne(id).pipe(
+      mergeMap(prod => {
+        if (!prod) {
+          return throwError(() => new NotFoundException('Product not found'));
+        }
+        return this.prodVarService.findOne(variantId);
+      }),
+    );
+  }
+
+  @Put(':id/variants/:variantId')
+  updateVariants(
+    @Param('id') id: string,
+    @Param('variantId') variantId: string,
+    @Body() productVariant: UpdateProductVariantDto,
+  ) {
+    return this.productService.findOne(id).pipe(
+      mergeMap(prod => {
+        if (!prod) {
+          return throwError(() => new NotFoundException('Product not found'));
+        }
+        return this.prodVarService.update(variantId, productVariant);
+      }),
+    );
+  }
+
+  @Post(':id/variants/:variantId/images')
+  @UseInterceptors(FilesInterceptor('files'))
+  updateVariantImages(
+    @Param('id') id: string,
+    @Param('variantId') variantId: string,
+    @UploadedFiles() files: Array<Express.Multer.File>,
+  ) {
+    return this.productService.findOne(id).pipe(
+      mergeMap(prod => {
+        if (!prod) {
+          return throwError(() => new NotFoundException('Product not found'));
+        }
+        return this.prodVarService.addImages(variantId, files);
+      }),
+    );
+  }
+
+  @Delete(':id/variants/:variantId/images/:index')
+  deleteVariantImage(
+    @Param('id') id: string,
+    @Param('variantId') variantId: string,
+    @Param('index') index: string,
+  ) {
+    return this.productService.findOne(id).pipe(
+      mergeMap(() => {
+        return this.prodVarService.removeImage(variantId, +index);
       }),
     );
   }

@@ -5,23 +5,17 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
-    bodyParser: true,
-    rawBody: true,
-  });
+  const app = await NestFactory.create(AppModule);
 
   app.setGlobalPrefix('api');
   app.enableCors();
   app.useGlobalFilters(new HttpExceptionFilter());
-  app.useGlobalPipes(
-    new ValidationPipe({
-      transform: true,
-      transformOptions: {
-        enableImplicitConversion: true,
-      },
-      whitelist: true,
-    }),
-  );
+  // app.useGlobalPipes(
+  //   new ValidationPipe({
+  //     transform: true,
+  //     whitelist: true,
+  //   }),
+  // );
 
   const config = new DocumentBuilder()
     .setTitle('Cats example')

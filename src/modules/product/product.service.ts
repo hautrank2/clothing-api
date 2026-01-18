@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { CreateProductDto } from './dto/create-product.dto';
-import mongoose, { FilterQuery, Model } from 'mongoose';
+import { FilterQuery, Model } from 'mongoose';
 import { Product } from 'src/schemas/product.schema';
 import { InjectModel } from '@nestjs/mongoose';
 import { forkJoin, from, map, mergeMap, Observable } from 'rxjs';
@@ -10,6 +10,7 @@ import { Category } from 'src/schemas/category.schema';
 import { CategoryService } from '../category/category.service';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductVariant } from 'src/schemas/product-variant.schema';
+import { ProductDto } from './dto/product.dto';
 
 @Injectable()
 export class ProductService {
@@ -29,13 +30,12 @@ export class ProductService {
     page: number = 1,
     pageSize: number = 10,
     options?: Record<string, any>,
-  ): Observable<PaginationResponse<Product>> {
+  ): Observable<PaginationResponse<ProductDto>> {
     const skip = (page - 1) * pageSize;
     const filter = options ? prettyObject(options) : {};
 
     const getProduct = (categoryIds?: string[]) => {
       delete filter.categoryId;
-
       const mongoFilter = { ...filter };
 
       if (categoryIds && categoryIds.length > 0) {
@@ -50,26 +50,11 @@ export class ProductService {
             .skip(skip)
             .limit(pageSize)
             .populate('categoryId')
-            .lean()
             .exec(),
         ),
       }).pipe(
         map(({ total, items }) => ({
-          items: items.map(item => {
-            const categoryId = item.categoryId as
-              | Category
-              | mongoose.Types.ObjectId
-              | string;
-
-            return {
-              ...item,
-              category: item.categoryId || null,
-              categoryId:
-                typeof categoryId === 'object' && categoryId !== null
-                  ? categoryId._id
-                  : categoryId,
-            };
-          }) as Product[],
+          items,
           page,
           pageSize,
           total,

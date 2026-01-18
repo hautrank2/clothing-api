@@ -10,6 +10,7 @@ import {
   forkJoin,
   from,
   map,
+  mergeMap,
   Observable,
   switchMap,
   throwError,
@@ -76,12 +77,16 @@ export class ProductVariantService {
     return `This action returns all productVariant`;
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} productVariant`;
+  findOne(id: string) {
+    return from(this.prodVarModel.findById(id).exec());
   }
 
-  update(id: number, updateProductVariantDto: UpdateProductVariantDto) {
-    return `This action updates a #${id} productVariant`;
+  update(id: string, updateProductVariantDto: UpdateProductVariantDto) {
+    return from(
+      this.prodVarModel.findByIdAndUpdate(id, updateProductVariantDto, {
+        new: true,
+      }),
+    );
   }
 
   remove(id: number) {
@@ -89,7 +94,70 @@ export class ProductVariantService {
   }
 
   findByProductId(productId: string): Observable<ProductVariant[]> {
-    const prodVars = this.prodVarModel.find({ productId }).lean().exec();
+    const prodVars = this.prodVarModel.find({ productId }).exec();
     return from(prodVars);
+  }
+
+  addImages(
+    variantId: string,
+    files: Array<Express.Multer.File>,
+  ): Observable<ProductVariant | null> {
+    const upload$ = files.map(file =>
+      this.uploadService.uploadFile(
+        file,
+        ['clothes', 'product'],
+        file.filename,
+      ),
+    );
+    return forkJoin(upload$).pipe(
+      switchMap((imgUrls: string[]) =>
+        from(
+          this.prodVarModel.findByIdAndUpdate(
+            variantId,
+            { $push: { imgUrls: { $each: imgUrls } } },
+            { new: true },
+          ),
+        ).pipe(
+          catchError(() => {
+            const remove$ = imgUrls.map(imgUrl =>
+              this.uploadService.removeFile(imgUrl),
+            );
+            return from(remove$).pipe(map(() => null));
+          }),
+        ),
+      ),
+    );
+  }
+
+  removeImage(
+    variantId: string,
+    index: number,
+  ): Observable<ProductVariant | null> {
+    return this.findOne(variantId).pipe(
+      switchMap(prodVar => {
+        if (!prodVar) {
+          return throwError(() => new Error('Product variant not found'));
+        }
+
+        const findImg = prodVar.imgUrls[index];
+        if (!findImg) {
+          return throwError(() => new Error('Image not found'));
+        }
+
+        const remove$ = this.uploadService.removeFile(findImg);
+        return from(remove$).pipe(
+          mergeMap(() => {
+            prodVar.imgUrls.splice(index, 1);
+            return from(
+              this.prodVarModel.findByIdAndUpdate(
+                variantId,
+                { imgUrls: prodVar.imgUrls },
+                { new: true },
+              ),
+            );
+          }),
+        );
+      }),
+    );
   }
 }
