@@ -7,7 +7,19 @@ import { Model } from 'mongoose';
 import { from, map, mergeMap, Observable, of } from 'rxjs';
 import { PaginationResponse } from 'src/types/response';
 
-export type CategoryDto = Category & { parent?: Category | null };
+export type CategoryDto = {
+  _id: string;
+  code: string;
+  title: string;
+  imgUrl: string;
+
+  parentId: string | null;
+  parent?: CategoryDto | null;
+
+  createdAt: Date;
+  updatedAt: Date;
+};
+
 @Injectable()
 export class CategoryService {
   constructor(
@@ -58,13 +70,12 @@ export class CategoryService {
     return from(this.categoryModel.findByIdAndDelete(id));
   }
 
-  findByCode(code: string): Observable<CategoryDto[]> {
+  findByCode(code: string): Observable<Category[]> {
     return from(
       this.categoryModel.find({ code }).populate('parentId').exec(),
     ).pipe(
       map(dt => {
-        return dt.map(cate => {
-          const dto = cate.toObject();
+        return dt.map(dto => {
           return dto;
         });
       }),
@@ -83,7 +94,7 @@ export class CategoryService {
     ).pipe(map(e => !!e));
   }
 
-  findCategoryWithAllChildren(id: string): Observable<CategoryDto[]> {
+  findCategoryWithAllChildren(id: string): Observable<Category[]> {
     return from(
       this.categoryModel.findById(id).populate('parentId').exec(),
     ).pipe(

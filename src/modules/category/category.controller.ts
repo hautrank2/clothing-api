@@ -29,6 +29,7 @@ import {
   throwError,
 } from 'rxjs';
 import { AdminGuard } from 'src/guards/admin.guard';
+import { Category } from 'src/schemas/category.schema';
 
 @UseGuards(AdminGuard)
 @Controller('category')
@@ -74,7 +75,19 @@ export class CategoryController {
 
   @Get()
   findAll(@Query('page') page: string, @Query('pageSize') pageSize: string) {
-    return this.categoryService.findAll(+page, +pageSize);
+    return this.categoryService.findAll(+page, +pageSize).pipe(
+      map(dt => ({
+        ...dt,
+        items: dt.items.map(item => {
+          const parent = item.parentId as Category | null;
+          return {
+            ...(item.toObject() as Category),
+            parent,
+            parentId: parent?._id ?? null,
+          };
+        }),
+      })),
+    );
   }
 
   @Get(':code')

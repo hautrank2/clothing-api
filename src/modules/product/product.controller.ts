@@ -78,10 +78,8 @@ export class ProductController {
             () => new NotFoundException('Category with this code not found'),
           );
         }
-        // eslint-disable-next-line @typescript-eslint/no-base-to-string
         return this.productService.findAll(1, 100, {
-          // eslint-disable-next-line @typescript-eslint/no-base-to-string
-          categoryId: cate._id.toString(),
+          categoryId: cate._id,
         });
       }),
     );
